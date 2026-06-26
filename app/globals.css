@@ -1,0 +1,199 @@
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=Prompt:wght@400;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Library Zone - Navy & Slate */
+  --library-primary: #1e3a5f;
+  --library-secondary: #2d5a8e;
+  --library-accent: #4a90d9;
+  --library-light: #e8f0fb;
+  --library-bg: #f0f4f8;
+
+  /* Learning Center Zone - Emerald & White */
+  --learn-primary: #065f46;
+  --learn-secondary: #059669;
+  --learn-accent: #34d399;
+  --learn-light: #ecfdf5;
+  --learn-bg: #f0fdf4;
+
+  /* Shared */
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --border-color: #e2e8f0;
+  --shadow-soft: 0 4px 24px rgba(0,0,0,0.08);
+  --shadow-hover: 0 8px 32px rgba(0,0,0,0.14);
+  --radius: 16px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Sarabun', sans-serif;
+  color: var(--text-primary);
+  background: #f8fafc;
+}
+
+.font-prompt {
+  font-family: 'Prompt', sans-serif;
+}
+
+/* Zone color classes */
+.zone-library {
+  --zone-primary: var(--library-primary);
+  --zone-secondary: var(--library-secondary);
+  --zone-accent: var(--library-accent);
+  --zone-light: var(--library-light);
+  --zone-bg: var(--library-bg);
+}
+
+.zone-learn {
+  --zone-primary: var(--learn-primary);
+  --zone-secondary: var(--learn-secondary);
+  --zone-accent: var(--learn-accent);
+  --zone-light: var(--learn-light);
+  --zone-bg: var(--learn-bg);
+}
+
+/* Card styles */
+.card {
+  background: white;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-soft);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+  transform: translateY(-2px);
+}
+
+/* Buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  outline: none;
+}
+
+.btn-library {
+  background: var(--library-primary);
+  color: white;
+}
+.btn-library:hover {
+  background: var(--library-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(30,58,95,0.3);
+}
+
+.btn-learn {
+  background: var(--learn-primary);
+  color: white;
+}
+.btn-learn:hover {
+  background: var(--learn-secondary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(6,95,70,0.3);
+}
+
+/* Input styles */
+.input-base {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-family: 'Sarabun', sans-serif;
+  font-size: 16px;
+  transition: border-color 0.2s ease;
+  outline: none;
+  background: white;
+}
+.input-base:focus {
+  border-color: var(--library-accent);
+}
+.input-learn:focus {
+  border-color: var(--learn-accent);
+}
+
+/* Alert */
+.alert-danger {
+  background: #fff5f5;
+  border: 2px solid #fc8181;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.alert-success {
+  background: #f0fff4;
+  border: 2px solid #68d391;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+/* Page animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeInUp 0.4s ease forwards;
+}
+
+.animate-delay-100 { animation-delay: 0.1s; opacity: 0; }
+.animate-delay-200 { animation-delay: 0.2s; opacity: 0; }
+.animate-delay-300 { animation-delay: 0.3s; opacity: 0; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+/* ===== Activity Page Print Styles ===== */
+@import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap');
+
+* { font-family: 'Sarabun', sans-serif !important; }
+
+@media print {
+  @page { size: A4; margin: 15mm 20mm; }
+  body { background: white !important; }
+  nav { display: none !important; }        /* ซ่อน Navbar */
+  main { min-height: unset !important; }   /* เอา min-height ออก */
+  .no-print { display: none !important; }
+  .print-area {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+  .print-input {
+    border: none !important;
+    border-bottom: 1px solid #000 !important;
+    border-radius: 0 !important;
+    padding: 2px 4px !important;
+    background: transparent !important;
+  }
+  .print-textarea {
+    border: 1px solid #000 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+  table { page-break-inside: avoid; }
+  tr { page-break-inside: avoid; }
+  img { page-break-inside: avoid; }
+}
