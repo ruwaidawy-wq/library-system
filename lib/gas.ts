@@ -59,10 +59,12 @@ export type Activity = {
   ID: string;
   วันที่: string;
   ห้องเรียน: string;
+  รหัสหนังสือ: string;
   รายชื่อนักเรียน: string;
   รายชื่อครู: string;
   แหล่งเรียนรู้: string;
   ลักษณะกิจกรรม: string;
+  รายละเอียด: string;
   สาระที่ได้รับ: string;
   ImageURL: string;
   Signature: string;
