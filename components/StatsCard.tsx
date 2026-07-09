@@ -17,7 +17,7 @@ interface Props {
 
 export default function StatsCard({ room, count, checkins }: Props) {
   const received = checkins.filter((c) => c.สิ่งที่ได้รับ).map((c) => c.สิ่งที่ได้รับ);
-  const uniqueReceived = [...new Set(received)];
+  const uniqueReceived = Array.from(new Set(received));
   const recent = checkins.slice(0, 5);
 
   return (
