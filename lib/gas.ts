@@ -162,3 +162,36 @@ export const activityApi = {
   deleteActivity: (id: string) =>
     gasRequest({ action: "deleteActivity", id }),
 };
+
+// ============================================================
+// ROOM REGISTRY TYPE & API
+// ============================================================
+
+export type RoomRegistry = {
+  RoomID: string;
+  ชื่อห้อง: string;
+  ประเภท: string;
+  รายละเอียด: string;
+  "อุปกรณ์/สื่อ": string;
+  ผู้รับผิดชอบ: string;
+  รูปภาพURL: string;
+  วันที่จัดตั้ง: string;
+};
+
+export const roomApi = {
+  getRoomRegistry: () =>
+    gasRequest<RoomRegistry[]>({ action: "getRoomRegistry" }),
+
+  getRoomById: (roomId: string) =>
+    gasRequest<RoomRegistry>({ action: "getRoomById", roomId }),
+
+  updateRoomRegistry: (data: {
+    roomId: string;
+    type?: string;
+    description?: string;
+    equipment?: string;
+    responsible?: string;
+    imageUrl?: string;
+    established?: string;
+  }) => gasRequest({ action: "updateRoomRegistry", ...data }),
+};

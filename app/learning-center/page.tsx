@@ -1,28 +1,55 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Trophy, QrCode, Users, TrendingUp, Calendar, CheckCircle } from "lucide-react";
+import { ArrowLeft, Trophy, Users, TrendingUp, Calendar, Search } from "lucide-react";
 import Link from "next/link";
-import { learningApi, CheckIn, Activity, LeaderboardEntry } from "@/lib/gas";
-import { activityApi } from "@/lib/gas";
-import StatsCard from "@/components/StatsCard";
-import Gallery from "@/components/Gallery";
+import { learningApi, LeaderboardEntry } from "@/lib/gas";
+import { roomApi, RoomRegistry } from "@/lib/gas";
 
-const ROOMS = [
-  "ห้องเรียน 1", "ห้องเรียน 2", "ห้องเรียน 3",
-  "ห้องเรียน 4", "ห้องเรียน 5", "ห้องเรียน 6",
-  "ห้องเรียน 7", "ห้องเรียน 8", "ห้องเรียน 9",
+const ALL_ROOMS = [
+  { id: "room-1", name: "ห้องเรียน 1" },
+  { id: "room-2", name: "ห้องเรียน 2" },
+  { id: "room-3", name: "ห้องเรียน 3" },
+  { id: "room-4", name: "ห้องเรียน 4" },
+  { id: "room-5", name: "ห้องเรียน 5" },
+  { id: "room-6", name: "ห้องเรียน 6" },
+  { id: "room-7", name: "ห้องเรียน 7" },
+  { id: "room-8", name: "ห้องเรียน 8" },
+  { id: "room-9", name: "ห้องเรียน 9" },
+  { id: "room-10", name: "ห้องเรียน 10" },
+  { id: "room-11", name: "ห้องเรียน 11" },
+  { id: "room-12", name: "ห้องเรียน 12" },
+  { id: "room-13", name: "ห้องเรียน 13" },
+  { id: "room-14", name: "ห้องเรียน 14" },
+  { id: "room-15", name: "ห้องเรียน 15" },
+  { id: "room-16", name: "ห้องเรียน 16" },
+  { id: "room-17", name: "ห้องเรียน 17" },
+  { id: "room-18", name: "ห้องเรียน 18" },
+  { id: "room-19", name: "ห้องเรียน 19" },
+  { id: "room-20", name: "ห้องเรียน 20" },
+  { id: "room-21", name: "ห้องเรียน 21" },
+  { id: "room-22", name: "ห้องเรียน 22" },
+  { id: "room-23", name: "ห้องเรียน 23" },
+  { id: "room-24", name: "ห้องเรียน 24" },
+  { id: "room-pt", name: "ห้องกายภาพบำบัด" },
+  { id: "room-thai", name: "ห้องแพทย์แผนไทย" },
+  { id: "room-sport", name: "ห้องกิจกรรมการฟื้นฟูสมรรถภาพ การกีฬา" },
+  { id: "room-art", name: "ห้องศิลปะบำบัด" },
+  { id: "room-speech", name: "ห้องอรรถบำบัด" },
+  { id: "room-career", name: "ห้องฝึกทักษะพื้นฐานอาชีพ" },
+  { id: "room-music", name: "ห้องดนตรี" },
+  { id: "room-ot", name: "ห้องกิจกรรมบำบัด" },
+  { id: "room-autism1", name: "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนเทศบาล 2(บ้านหาดใหญ่)" },
+  { id: "room-autism2", name: "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนวัดเจริญภูผา" },
+  { id: "room-autism3", name: "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนบ้านทำเนียบ" },
+  { id: "room-ict", name: "ศูนย์เทคโนโลยีสารสนเทศเด็กเจ็บป่วยในโรงพยาบาลหาดใหญ่" },
 ];
 
 export default function LearningCenterPage() {
-  const [activeRoom, setActiveRoom] = useState<string | null>(null);
-  const [checkins, setCheckins] = useState<CheckIn[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [roomStats, setRoomStats] = useState<Record<string, number>>({});
   const [totalCheckins, setTotalCheckins] = useState(0);
-  const [todayCheckins, setTodayCheckins] = useState(0);
-  const [loading, setLoading] = useState(false);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     Promise.all([
@@ -32,36 +59,18 @@ export default function LearningCenterPage() {
       if (lb.data) setLeaderboard(lb.data);
       if (stats.data) {
         setRoomStats(stats.data);
-        const total = Object.values(stats.data).reduce((a, b) => a + b, 0);
+        const total = Object.values(stats.data).reduce((a: number, b: number) => a + b, 0);
         setTotalCheckins(total);
       }
       setLoadingStats(false);
     });
   }, []);
 
-  useEffect(() => {
-    if (!activeRoom) return;
-    setLoading(true);
-    Promise.all([
-      learningApi.getCheckInsByRoom(activeRoom),
-      activityApi.getActivitiesByRoom(activeRoom),
-    ]).then(([ci, act]) => {
-      if (ci.data) {
-        setCheckins(ci.data);
-        const today = new Date().toLocaleDateString("th-TH");
-        const todayCount = ci.data.filter(c => {
-          const d = new Date(c.Timestamp).toLocaleDateString("th-TH");
-          return d === today;
-        }).length;
-        setTodayCheckins(todayCount);
-      }
-      if (act.data) setActivities(act.data);
-      setLoading(false);
-    });
-  }, [activeRoom]);
-
   const medals = ["🥇", "🥈", "🥉"];
-  const totalActivities = Object.keys(roomStats).length;
+  const activeRooms = Object.keys(roomStats).length;
+  const filteredRooms = ALL_ROOMS.filter(r =>
+    r.name.includes(searchQuery)
+  );
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -77,7 +86,7 @@ export default function LearningCenterPage() {
         </div>
       </div>
 
-      {/* Stats Overview */}
+      {/* Stats */}
       {loadingStats ? (
         <div className="text-center py-6 text-slate-400">กำลังโหลดข้อมูล...</div>
       ) : (
@@ -85,8 +94,8 @@ export default function LearningCenterPage() {
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
               { label: "เช็คอินทั้งหมด", value: totalCheckins, color: "#065f46", icon: <Users size={20} /> },
-              { label: "ห้องที่ใช้งาน", value: totalActivities, color: "#3b82f6", icon: <TrendingUp size={20} /> },
-              { label: "วันนี้", value: todayCheckins, color: "#f59e0b", icon: <Calendar size={20} /> },
+              { label: "ห้องที่ใช้งานแล้ว", value: activeRooms, color: "#3b82f6", icon: <TrendingUp size={20} /> },
+              { label: "ห้องทั้งหมด", value: ALL_ROOMS.length, color: "#8b5cf6", icon: <Calendar size={20} /> },
             ].map((s) => (
               <div key={s.label} className="bg-white rounded-2xl shadow p-4">
                 <div className="flex items-center gap-2 mb-2" style={{ color: s.color }}>
@@ -109,10 +118,10 @@ export default function LearningCenterPage() {
               </div>
               <div className="grid grid-cols-3 gap-3">
                 {leaderboard.map((entry, i) => (
-                  <button
+                  <Link
                     key={entry.room}
-                    onClick={() => setActiveRoom(entry.room)}
-                    className="rounded-2xl p-4 text-center text-white transition-all hover:opacity-90 hover:-translate-y-1"
+                    href={`/learning-center/${ALL_ROOMS.find(r => r.name === entry.room)?.id || entry.room}`}
+                    className="rounded-2xl p-4 text-center text-white transition-all hover:opacity-90 hover:-translate-y-1 block"
                     style={{
                       background: i === 0
                         ? "linear-gradient(135deg, #f59e0b, #d97706)"
@@ -123,92 +132,58 @@ export default function LearningCenterPage() {
                     <div className="text-2xl mb-1">{medals[i]}</div>
                     <p className="font-bold text-xs">{entry.room}</p>
                     <p className="text-xs opacity-80">{entry.count} ครั้ง</p>
-                  </button>
+                  </Link>
                 ))}
               </div>
             </div>
           )}
-
-          {/* QR Code link */}
-          <div className="bg-emerald-50 border-2 border-emerald-200 rounded-xl p-4 mb-6 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <QrCode size={24} style={{ color: "#065f46" }} />
-              <div>
-                <p className="font-medium text-sm" style={{ color: "#065f46" }}>QR Code เช็คอิน</p>
-                <p className="text-xs text-slate-500">พิมพ์ QR Code ติดหน้าห้องเรียน</p>
-              </div>
-            </div>
-            <Link href="/qrcode"
-              className="px-4 py-2 rounded-xl text-white text-sm font-medium"
-              style={{ background: "#065f46" }}>
-              ดู QR Code
-            </Link>
-          </div>
         </>
       )}
 
-      {/* Room Tabs */}
-      <div className="mb-4">
-        <p className="text-sm font-medium text-slate-500 mb-3">เลือกห้องเรียนเพื่อดูรายละเอียด</p>
-        <div className="flex flex-wrap gap-2">
-          {ROOMS.map((room) => (
-            <button
-              key={room}
-              onClick={() => setActiveRoom(activeRoom === room ? null : room)}
-              className="px-3 py-2 rounded-xl text-sm font-medium transition-all relative"
-              style={
-                activeRoom === room
-                  ? { background: "#065f46", color: "white" }
-                  : { background: "white", color: "#065f46", border: "2px solid #ecfdf5" }
-              }>
-              {room.replace("ห้องเตรียมความพร้อม ", "ห้อง ")}
-              {roomStats[room] > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 text-xs w-5 h-5 rounded-full flex items-center justify-center text-white font-bold"
-                  style={{ background: "#059669", fontSize: "10px" }}>
-                  {roomStats[room] > 9 ? "9+" : roomStats[room]}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Search */}
+      <div className="relative mb-4">
+        <Search size={18} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          className="w-full pl-10 pr-4 py-3 border-2 border-slate-200 rounded-xl text-base outline-none focus:border-green-400"
+          placeholder="ค้นหาห้องเรียน..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+        />
       </div>
 
-      {/* Room Detail */}
-      {activeRoom && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
-              {activeRoom}
-            </h2>
-            <button onClick={() => setActiveRoom(null)}
-              className="text-xs text-slate-400 hover:text-slate-600">
-              ปิด ✕
-            </button>
-          </div>
-
-          {loading ? (
-            <div className="text-center py-8 text-slate-400">กำลังโหลด...</div>
-          ) : (
-            <>
-              {/* Mini Stats */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-2xl shadow p-4 text-center">
-                  <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{checkins.length}</p>
-                  <p className="text-xs text-slate-500 mt-1">เช็คอินทั้งหมด</p>
-                </div>
-                <div className="bg-white rounded-2xl shadow p-4 text-center">
-                  <p className="text-3xl font-bold" style={{ color: "#3b82f6" }}>{activities.length}</p>
-                  <p className="text-xs text-slate-500 mt-1">บันทึกกิจกรรม</p>
-                </div>
+      {/* Room Grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {filteredRooms.map((room) => {
+          const count = roomStats[room.name] || 0;
+          const isActive = count > 0;
+          return (
+            <Link
+              key={room.id}
+              href={`/learning-center/${room.id}`}
+              className="bg-white rounded-2xl shadow p-4 hover:shadow-md hover:-translate-y-1 transition-all relative block"
+            >
+              {isActive && (
+                <span
+                  className="absolute top-2 right-2 text-xs w-6 h-6 rounded-full flex items-center justify-center text-white font-bold"
+                  style={{ background: "#065f46", fontSize: "10px" }}>
+                  {count > 99 ? "99+" : count}
+                </span>
+              )}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-lg font-bold text-white"
+                style={{ background: isActive ? "linear-gradient(135deg, #065f46, #059669)" : "#e2e8f0" }}>
+                <span style={{ color: isActive ? "white" : "#94a3b8", fontSize: "12px" }}>
+                  {room.name.includes("ห้องเรียน") ? room.name.replace("ห้องเรียน ", "") : "🏫"}
+                </span>
               </div>
-
-              <StatsCard room={activeRoom} count={checkins.length} checkins={checkins} />
-              <Gallery activities={activities} />
-            </>
-          )}
-        </div>
-      )}
+              <p className="text-sm font-semibold text-slate-700 leading-tight line-clamp-2">{room.name}</p>
+              <p className="text-xs text-slate-400 mt-1">
+                {isActive ? `${count} ครั้ง` : "ยังไม่มีการเข้าใช้"}
+              </p>
+            </Link>
+          );
+        })}
+      </div>
     </div>
   );
 }
