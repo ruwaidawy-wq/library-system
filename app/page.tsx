@@ -98,7 +98,7 @@ export default function HomePage() {
       <p className="mt-12 text-slate-400 text-sm text-center animate-fade-in animate-delay-300">
         ระบบจัดการห้องสมุดและแหล่งเรียนรู้ • โครงการ Learning space for all งานห้องสมุดและแหล่งเรียนรู้ ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา
         <br />
-        พัฒนาโดยนางสาวรูวัยดา หวังยี
+        พัฒนาโดย นางสาวรูวัยดา หวังยี
       </p>
     </div>
   );
