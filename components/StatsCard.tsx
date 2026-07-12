@@ -48,7 +48,7 @@ export default function StatsCard({ room, count, checkins }: Props) {
       {recent.length > 0 ? (
         <div>
           <p className="text-xs text-slate-500 mb-2 font-medium flex items-center gap-1">
-            <Clock size={12} /> การเช็คอินล่าสุด
+            <Clock size={12} /> การเข้าใช้ล่าสุด
           </p>
           <div className="space-y-2">
             {recent.map((c, i) => (
@@ -65,7 +65,7 @@ export default function StatsCard({ room, count, checkins }: Props) {
           </div>
         </div>
       ) : (
-        <p className="text-slate-400 text-sm text-center py-4">ยังไม่มีการเช็คอิน</p>
+        <p className="text-slate-400 text-sm text-center py-4">ยังไม่มีการเข้าใช้</p>
       )}
     </div>
   );

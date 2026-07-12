@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { ArrowLeft, Trophy, Users, TrendingUp, Calendar, Search } from "lucide-react";
 import Link from "next/link";
 import { learningApi, LeaderboardEntry } from "@/lib/gas";
-import { roomApi, RoomRegistry } from "@/lib/gas";
 
 const ALL_ROOMS = [
   { id: "room-1", name: "ห้องเรียน ๑" },
@@ -93,7 +92,7 @@ export default function LearningCenterPage() {
         <>
           <div className="grid grid-cols-3 gap-3 mb-6">
             {[
-              { label: "เช็คอินทั้งหมด", value: totalCheckins, color: "#065f46", icon: <Users size={20} /> },
+              { label: "เข้าใช้ทั้งหมด", value: totalCheckins, color: "#065f46", icon: <Users size={20} /> },
               { label: "ห้องที่ใช้งานแล้ว", value: activeRooms, color: "#3b82f6", icon: <TrendingUp size={20} /> },
               { label: "ห้องทั้งหมด", value: ALL_ROOMS.length, color: "#8b5cf6", icon: <Calendar size={20} /> },
             ].map((s) => (

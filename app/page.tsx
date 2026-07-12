@@ -76,12 +76,12 @@ export default function HomePage() {
             </div>
             <h2 className="font-prompt text-2xl font-bold mb-2">แหล่งเรียนรู้</h2>
             <p className="text-emerald-100 text-sm leading-relaxed">
-              เช็คอินเข้าแหล่งเรียนรู้ ดูกิจกรรม
+              เข้าใช้แหล่งเรียนรู้ ดูกิจกรรม
               <br />
               และติดตามอันดับแหล่งเรียนรู้ที่ใช้งานสูงสุด
             </p>
             <div className="mt-6 flex gap-3">
-              {["เช็คอิน", "กิจกรรม", "Leaderboard"].map((tag) => (
+              {["การเข้าใช้", "กิจกรรม", "Leaderboard"].map((tag) => (
                 <span
                   key={tag}
                   className="text-xs bg-white/20 px-3 py-1 rounded-full"

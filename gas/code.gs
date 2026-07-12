@@ -11,6 +11,7 @@ const SHEETS = {
   BORROW_LOG: "Borrow_Log",
   CHECKIN_LOG: "CheckIn_Log",
   ACTIVITIES: "Activities",
+  ROOM_REGISTRY: "Room_Registry",
 };
 
 function doGet(e) {
@@ -59,6 +60,10 @@ if (e.postData) {
 case "updateActivityStatus": result = updateActivityStatus(data); break;
 case "deleteActivity":       result = deleteActivity(data); break;
 case "searchBook": result = searchBook(data.query); break;
+case "getRoomRegistryByRoom":  result = getRoomRegistryByRoom(data.roomId); break;
+case "addRoomRegistryEntry":   result = addRoomRegistryEntry(data); break;
+case "updateRoomRegistryEntry":result = updateRoomRegistryEntry(data); break;
+case "deleteRoomRegistryEntry":result = deleteRoomRegistryEntry(data.id); break;
       default: result = { success: false, error: "Unknown action: " + action };
 
     }
@@ -426,4 +431,65 @@ function searchBook(query) {
       status: found["สถานะ"],
     }
   };
+}
+
+// ============================================================
+// ROOM REGISTRY (ทะเบียนแหล่งเรียนรู้ / มุมการเรียนรู้)
+// ============================================================
+
+function getRoomRegistryByRoom(roomId) {
+  if (!roomId) return { success: false, error: "ต้องระบุห้อง" };
+  const data = sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY));
+  return { success: true, data: data.filter(row => String(row["RoomID"]) === String(roomId)) };
+}
+
+function addRoomRegistryEntry(data) {
+  const { roomId, type, description, equipment, responsible, established, imageUrl } = data;
+  if (!roomId) return { success: false, error: "ต้องระบุห้อง" };
+  const sheet = getSheet(SHEETS.ROOM_REGISTRY);
+  const id = generateID("REG");
+  sheet.appendRow([
+    id, roomId, type || "", description || "", equipment || "", responsible || "", established || "", imageUrl || ""
+  ]);
+  return { success: true, id };
+}
+
+function updateRoomRegistryEntry(data) {
+  const { id, type, description, equipment, responsible, established, imageUrl } = data;
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+
+  const sheet = getSheet(SHEETS.ROOM_REGISTRY);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idIdx = headers.indexOf("ID");
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      const rowIndex = i + 1;
+      sheet.getRange(rowIndex, headers.indexOf("ประเภท") + 1).setValue(type || "");
+      sheet.getRange(rowIndex, headers.indexOf("รายละเอียด") + 1).setValue(description || "");
+      sheet.getRange(rowIndex, headers.indexOf("อุปกรณ์/สื่อ") + 1).setValue(equipment || "");
+      sheet.getRange(rowIndex, headers.indexOf("ผู้รับผิดชอบ") + 1).setValue(responsible || "");
+      sheet.getRange(rowIndex, headers.indexOf("วันที่จัดตั้ง") + 1).setValue(established || "");
+      sheet.getRange(rowIndex, headers.indexOf("รูปภาพURL") + 1).setValue(imageUrl || "");
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
+}
+
+function deleteRoomRegistryEntry(id) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.ROOM_REGISTRY);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idIdx = headers.indexOf("ID");
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
 }

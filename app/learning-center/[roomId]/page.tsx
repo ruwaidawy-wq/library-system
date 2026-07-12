@@ -1,10 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Save, Users, Calendar, Image, Printer, Pen } from "lucide-react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, Calendar, Image, Printer, Pen } from "lucide-react";
 import Link from "next/link";
 import { learningApi, CheckIn } from "@/lib/gas";
-import { roomApi, RoomRegistry } from "@/lib/gas";
 import SignaturePad from "@/components/SignaturePad";
+import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 
@@ -41,11 +41,6 @@ const ALL_ROOMS: Record<string, string> = {
   "room-24": "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)",
 };
 
-const ROOM_TYPES = [
-  "ห้องเรียน", "ห้องบำบัด", "ห้องกิจกรรม", "ห้องดนตรี",
-  "ห้องศิลปะ", "ห้องฝึกอาชีพ", "ห้องเรียนคู่ขนาน", "ศูนย์เทคโนโลยี", "อื่นๆ"
-];
-
 type Tab = "info" | "checkin" | "activity";
 
 export default function RoomPage({ params }: { params: { roomId: string } }) {
@@ -53,23 +48,12 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const roomName = ALL_ROOMS[roomId] || roomId;
 
   const [activeTab, setActiveTab] = useState<Tab>("info");
-  const [registry, setRegistry] = useState<RoomRegistry | null>(null);
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [adminPassword, setAdminPassword] = useState("");
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminError, setAdminError] = useState("");
-
-  // Edit form
-  const [editType, setEditType] = useState("");
-  const [editDesc, setEditDesc] = useState("");
-  const [editEquip, setEditEquip] = useState("");
-  const [editResponsible, setEditResponsible] = useState("");
-  const [editEstablished, setEditEstablished] = useState("");
-  const [editImageUrl, setEditImageUrl] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveSuccess, setSaveSuccess] = useState(false);
 
   // Activity form
   const [actDate, setActDate] = useState(new Date().toISOString().split("T")[0]);
@@ -87,23 +71,11 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    Promise.all([
-      roomApi.getRoomById(roomId),
-      learningApi.getCheckInsByRoom(roomName),
-    ]).then(([reg, ci]) => {
-      if (reg.success && reg.data) {
-        setRegistry(reg.data);
-        setEditType(reg.data.ประเภท || "");
-        setEditDesc(reg.data.รายละเอียด || "");
-        setEditEquip(reg.data["อุปกรณ์/สื่อ"] || "");
-        setEditResponsible(reg.data.ผู้รับผิดชอบ || "");
-        setEditEstablished(reg.data.วันที่จัดตั้ง || "");
-        setEditImageUrl(reg.data.รูปภาพURL || "");
-      }
+    learningApi.getCheckInsByRoom(roomName).then((ci) => {
       if (ci.success && ci.data) setCheckins(ci.data);
       setLoading(false);
     });
-  }, [roomId, roomName]);
+  }, [roomName]);
 
   function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -114,22 +86,6 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     } else {
       setAdminError("รหัสผ่านไม่ถูกต้อง");
     }
-  }
-
-  async function handleSaveRegistry() {
-    setSaving(true);
-    await roomApi.updateRoomRegistry({
-      roomId,
-      type: editType,
-      description: editDesc,
-      equipment: editEquip,
-      responsible: editResponsible,
-      imageUrl: editImageUrl,
-      established: editEstablished,
-    });
-    setSaving(false);
-    setSaveSuccess(true);
-    setTimeout(() => setSaveSuccess(false), 3000);
   }
 
   function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -184,7 +140,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "info", label: "ทะเบียนห้อง", icon: <Edit2 size={16} /> },
-    { id: "checkin", label: "ประวัติเช็คอิน", icon: <Users size={16} /> },
+    { id: "checkin", label: "ประวัติการเข้าใช้", icon: <Users size={16} /> },
     { id: "activity", label: "บันทึกกิจกรรม", icon: <Image size={16} /> },
   ];
 
@@ -246,7 +202,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       <div className="no-print grid grid-cols-2 gap-3 my-4">
         <div className="bg-white rounded-2xl shadow p-4 text-center">
           <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{checkins.length}</p>
-          <p className="text-xs text-slate-500 mt-1">เช็คอินทั้งหมด</p>
+          <p className="text-xs text-slate-500 mt-1">เข้าใช้ทั้งหมด</p>
         </div>
         <div className="bg-white rounded-2xl shadow p-4 text-center">
           <p className="text-3xl font-bold" style={{ color: "#f59e0b" }}>{todayCheckins}</p>
@@ -267,94 +223,19 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         ))}
       </div>
 
-      {/* TAB: ทะเบียนห้อง */}
+      {/* TAB: ทะเบียนแหล่งเรียนรู้ */}
       {activeTab === "info" && (
-        <div className="bg-white rounded-2xl shadow p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>ทะเบียนแหล่งเรียนรู้</h2>
-            {isAdminMode && (
-              <button onClick={handleSaveRegistry} disabled={saving}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-50"
-                style={{ background: "#065f46" }}>
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                บันทึก
-              </button>
-            )}
-          </div>
-
-          {saveSuccess && (
-            <div className="bg-green-50 border border-green-300 rounded-xl p-3 flex items-center gap-2">
-              <CheckCircle size={16} className="text-green-600" />
-              <span className="text-green-700 text-sm">บันทึกข้อมูลเรียบร้อยแล้ว</span>
-            </div>
-          )}
-
-          {/* Room Image */}
-          {(editImageUrl || isAdminMode) && (
-            <div>
-              {editImageUrl && (
-                <img src={editImageUrl} alt={roomName}
-                  className="w-full h-48 object-cover rounded-xl mb-2" />
-              )}
-              {isAdminMode && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1">URL รูปภาพห้อง</label>
-                  <input
-                    value={editImageUrl}
-                    onChange={e => setEditImageUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400"
-                  />
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Fields */}
-          {[
-            { label: "ชื่อห้อง", value: roomName, editable: false },
-            { label: "ประเภท", value: editType, setter: setEditType, isSelect: true },
-            { label: "รายละเอียด", value: editDesc, setter: setEditDesc, isTextarea: true },
-            { label: "อุปกรณ์/สื่อการเรียนรู้", value: editEquip, setter: setEditEquip, isTextarea: true },
-            { label: "ผู้รับผิดชอบ", value: editResponsible, setter: setEditResponsible },
-            { label: "วันที่จัดตั้ง", value: editEstablished, setter: setEditEstablished, isDate: true },
-          ].map((field) => (
-            <div key={field.label}>
-              <label className="block text-sm font-medium text-slate-500 mb-1">{field.label}</label>
-              {!isAdminMode || field.editable === false ? (
-                <p className="text-slate-800 bg-slate-50 rounded-xl px-3 py-2 text-sm min-h-[40px]">
-                  {field.value || <span className="text-slate-300">ยังไม่มีข้อมูล</span>}
-                </p>
-              ) : field.isSelect ? (
-                <select value={field.value} onChange={e => field.setter?.(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 appearance-none bg-white">
-                  <option value="">-- เลือกประเภท --</option>
-                  {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
-              ) : field.isTextarea ? (
-                <textarea value={field.value} onChange={e => field.setter?.(e.target.value)}
-                  rows={3}
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
-              ) : field.isDate ? (
-                <input type="date" value={field.value} onChange={e => field.setter?.(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
-              ) : (
-                <input value={field.value} onChange={e => field.setter?.(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
-              )}
-            </div>
-          ))}
-        </div>
+        <RoomRegistryPanel roomId={roomId} isAdminMode={isAdminMode} />
       )}
 
-      {/* TAB: ประวัติเช็คอิน */}
+      {/* TAB: ประวัติการเข้าใช้ */}
       {activeTab === "checkin" && (
         <div className="bg-white rounded-2xl shadow p-6">
           <h2 className="font-semibold text-lg mb-4" style={{ color: "#065f46" }}>
-            ประวัติการเช็คอิน ({checkins.length} ครั้ง)
+            ประวัติการเข้าใช้ ({checkins.length} ครั้ง)
           </h2>
           {checkins.length === 0 ? (
-            <p className="text-slate-400 text-sm text-center py-8">ยังไม่มีการเช็คอิน</p>
+            <p className="text-slate-400 text-sm text-center py-8">ยังไม่มีการเข้าใช้</p>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {[...checkins].reverse().map((c, i) => (

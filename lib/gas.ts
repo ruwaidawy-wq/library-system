@@ -167,31 +167,41 @@ export const activityApi = {
 // ROOM REGISTRY TYPE & API
 // ============================================================
 
-export type RoomRegistry = {
+export type RoomRegistryEntry = {
+  ID: string;
   RoomID: string;
-  ชื่อห้อง: string;
   ประเภท: string;
   รายละเอียด: string;
   "อุปกรณ์/สื่อ": string;
   ผู้รับผิดชอบ: string;
-  รูปภาพURL: string;
   วันที่จัดตั้ง: string;
+  รูปภาพURL: string;
 };
 
 export const roomApi = {
-  getRoomRegistry: () =>
-    gasRequest<RoomRegistry[]>({ action: "getRoomRegistry" }),
+  getRoomRegistryByRoom: (roomId: string) =>
+    gasRequest<RoomRegistryEntry[]>({ action: "getRoomRegistryByRoom", roomId }),
 
-  getRoomById: (roomId: string) =>
-    gasRequest<RoomRegistry>({ action: "getRoomById", roomId }),
-
-  updateRoomRegistry: (data: {
+  addRoomRegistryEntry: (data: {
     roomId: string;
     type?: string;
     description?: string;
     equipment?: string;
     responsible?: string;
-    imageUrl?: string;
     established?: string;
-  }) => gasRequest({ action: "updateRoomRegistry", ...data }),
+    imageUrl?: string;
+  }) => gasRequest<{ id: string }>({ action: "addRoomRegistryEntry", ...data }),
+
+  updateRoomRegistryEntry: (data: {
+    id: string;
+    type?: string;
+    description?: string;
+    equipment?: string;
+    responsible?: string;
+    established?: string;
+    imageUrl?: string;
+  }) => gasRequest({ action: "updateRoomRegistryEntry", ...data }),
+
+  deleteRoomRegistryEntry: (id: string) =>
+    gasRequest({ action: "deleteRoomRegistryEntry", id }),
 };
