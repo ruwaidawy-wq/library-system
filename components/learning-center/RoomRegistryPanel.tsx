@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Edit2, Trash2, Save, X, Camera, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Save, X, Camera, Loader2, CheckCircle } from "lucide-react";
 import { roomApi, RoomRegistryEntry } from "@/lib/gas";
 
 const ROOM_TYPES = [
@@ -19,6 +19,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [submittedPending, setSubmittedPending] = useState(false);
 
   const [formType, setFormType] = useState("");
   const [formDesc, setFormDesc] = useState("");
@@ -83,14 +84,28 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
       established: formEstablished,
       imageUrl: formPhotos.join(","),
     };
+    const isNewEntry = !editingId;
     if (editingId) {
       await roomApi.updateRoomRegistryEntry({ id: editingId, ...payload });
     } else {
-      await roomApi.addRoomRegistryEntry({ roomId, ...payload });
+      await roomApi.addRoomRegistryEntry({
+        roomId,
+        ...payload,
+        status: isAdminMode ? "อนุมัติแล้ว" : "รออนุมัติ",
+      });
     }
     setSaving(false);
     setShowForm(false);
     resetForm();
+    await load();
+    if (isNewEntry && !isAdminMode) {
+      setSubmittedPending(true);
+      setTimeout(() => setSubmittedPending(false), 6000);
+    }
+  }
+
+  async function handleApprove(entry: RoomRegistryEntry) {
+    await roomApi.approveRoomRegistryEntry(entry.ID);
     load();
   }
 
@@ -100,11 +115,22 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
     load();
   }
 
+  const visibleEntries = isAdminMode
+    ? entries
+    : entries.filter(e => e.สถานะ === "อนุมัติแล้ว");
+  const pendingCount = entries.filter(e => e.สถานะ !== "อนุมัติแล้ว").length;
+
   return (
     <div className="bg-white rounded-2xl shadow p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
-          ทะเบียนแหล่งเรียนรู้ {entries.length > 0 && `(${entries.length})`}
+          ทะเบียนแหล่งเรียนรู้ {visibleEntries.length > 0 && `(${visibleEntries.length})`}
+          {isAdminMode && pendingCount > 0 && (
+            <span className="ml-2 text-xs px-2 py-1 rounded-full font-medium align-middle"
+              style={{ background: "#f3e8ff", color: "#7c3aed" }}>
+              รออนุมัติ {pendingCount}
+            </span>
+          )}
         </h2>
         {!showForm && (
           <button onClick={openAdd}
@@ -114,6 +140,13 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
           </button>
         )}
       </div>
+
+      {submittedPending && (
+        <div className="bg-purple-50 border border-purple-300 rounded-xl p-3 flex items-center gap-2">
+          <CheckCircle size={16} className="text-purple-600" />
+          <span className="text-purple-700 text-sm">ส่งข้อมูลเรียบร้อยแล้ว กำลังรอการอนุมัติจากแอดมิน</span>
+        </div>
+      )}
 
       {showForm && (
         <form onSubmit={handleSubmit} className="border-2 border-dashed border-slate-200 rounded-xl p-4 space-y-3">
@@ -185,23 +218,38 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
 
       {loading ? (
         <div className="text-center py-8 text-slate-400 text-sm">กำลังโหลดข้อมูล...</div>
-      ) : entries.length === 0 ? (
+      ) : visibleEntries.length === 0 ? (
         !showForm && (
           <p className="text-slate-300 text-sm text-center py-8">ยังไม่มีข้อมูลแหล่งเรียนรู้ในห้องนี้</p>
         )
       ) : (
         <div className="space-y-3">
-          {entries.map((entry) => {
+          {visibleEntries.map((entry) => {
             const photos = entry.รูปภาพURL ? entry.รูปภาพURL.split(",").filter(Boolean) : [];
+            const isPending = entry.สถานะ !== "อนุมัติแล้ว";
             return (
-              <div key={entry.ID} className="border border-slate-100 rounded-xl p-4">
+              <div key={entry.ID} className={`border rounded-xl p-4 ${isPending ? "border-purple-200 bg-purple-50/40" : "border-slate-100"}`}>
                 <div className="flex items-start justify-between mb-2">
-                  <span className="text-xs px-2 py-1 rounded-full font-medium"
-                    style={{ background: "#ecfdf5", color: "#065f46" }}>
-                    {entry.ประเภท || "ไม่ระบุประเภท"}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs px-2 py-1 rounded-full font-medium"
+                      style={{ background: "#ecfdf5", color: "#065f46" }}>
+                      {entry.ประเภท || "ไม่ระบุประเภท"}
+                    </span>
+                    {isAdminMode && isPending && (
+                      <span className="text-xs px-2 py-1 rounded-full font-medium"
+                        style={{ background: "#f3e8ff", color: "#7c3aed" }}>
+                        รออนุมัติ
+                      </span>
+                    )}
+                  </div>
                   {isAdminMode && (
                     <div className="flex gap-1">
+                      {isPending && (
+                        <button onClick={() => handleApprove(entry)}
+                          className="p-1.5 rounded-lg text-green-500 hover:bg-green-50 hover:text-green-600">
+                          <CheckCircle size={14} />
+                        </button>
+                      )}
                       <button onClick={() => openEdit(entry)}
                         className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600">
                         <Edit2 size={14} />

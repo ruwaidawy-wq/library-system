@@ -176,6 +176,7 @@ export type RoomRegistryEntry = {
   ผู้รับผิดชอบ: string;
   วันที่จัดตั้ง: string;
   รูปภาพURL: string;
+  สถานะ: string;
 };
 
 export const roomApi = {
@@ -190,7 +191,11 @@ export const roomApi = {
     responsible?: string;
     established?: string;
     imageUrl?: string;
+    status?: string;
   }) => gasRequest<{ id: string }>({ action: "addRoomRegistryEntry", ...data }),
+
+  approveRoomRegistryEntry: (id: string) =>
+    gasRequest({ action: "approveRoomRegistryEntry", id }),
 
   updateRoomRegistryEntry: (data: {
     id: string;

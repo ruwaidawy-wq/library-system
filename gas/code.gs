@@ -64,6 +64,7 @@ case "getRoomRegistryByRoom":  result = getRoomRegistryByRoom(data.roomId); brea
 case "addRoomRegistryEntry":   result = addRoomRegistryEntry(data); break;
 case "updateRoomRegistryEntry":result = updateRoomRegistryEntry(data); break;
 case "deleteRoomRegistryEntry":result = deleteRoomRegistryEntry(data.id); break;
+case "approveRoomRegistryEntry":result = approveRoomRegistryEntry(data.id); break;
       default: result = { success: false, error: "Unknown action: " + action };
 
     }
@@ -444,14 +445,32 @@ function getRoomRegistryByRoom(roomId) {
 }
 
 function addRoomRegistryEntry(data) {
-  const { roomId, type, description, equipment, responsible, established, imageUrl } = data;
+  const { roomId, type, description, equipment, responsible, established, imageUrl, status } = data;
   if (!roomId) return { success: false, error: "ต้องระบุห้อง" };
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const id = generateID("REG");
   sheet.appendRow([
-    id, roomId, type || "", description || "", equipment || "", responsible || "", established || "", imageUrl || ""
+    id, roomId, type || "", description || "", equipment || "", responsible || "", established || "", imageUrl || "",
+    status || "รออนุมัติ"
   ]);
   return { success: true, id };
+}
+
+function approveRoomRegistryEntry(id) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.ROOM_REGISTRY);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idIdx = headers.indexOf("ID");
+  const statusIdx = headers.indexOf("สถานะ");
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      sheet.getRange(i + 1, statusIdx + 1).setValue("อนุมัติแล้ว");
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
 }
 
 function updateRoomRegistryEntry(data) {
