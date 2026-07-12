@@ -171,9 +171,10 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">ผู้รับผิดชอบ</label>
-            <input value={formResponsible} onChange={e => setFormResponsible(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+            <label className="block text-sm font-medium text-slate-500 mb-1">ผู้รับผิดชอบ (ระบุได้หลายคน บรรทัดละ 1 คน)</label>
+            <textarea value={formResponsible} onChange={e => setFormResponsible(e.target.value)}
+              rows={2} placeholder="ชื่อผู้รับผิดชอบคนที่ 1&#10;ชื่อผู้รับผิดชอบคนที่ 2"
+              className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-500 mb-1">วันที่จัดตั้ง</label>
@@ -278,12 +279,17 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
                     <span className="font-medium">อุปกรณ์/สื่อ:</span> {entry["อุปกรณ์/สื่อ"]}
                   </p>
                 )}
-                <div className="flex flex-wrap gap-x-4 text-xs text-slate-400 mt-2">
-                  {entry.ผู้รับผิดชอบ && <span>ผู้รับผิดชอบ: {entry.ผู้รับผิดชอบ}</span>}
-                  {entry.วันที่จัดตั้ง && (
-                    <span>จัดตั้ง: {new Date(entry.วันที่จัดตั้ง).toLocaleDateString("th-TH")}</span>
-                  )}
-                </div>
+                {entry.ผู้รับผิดชอบ && (
+                  <p className="text-xs text-slate-400 mt-2">
+                    <span className="font-medium">ผู้รับผิดชอบ:</span>{" "}
+                    {entry.ผู้รับผิดชอบ.split("\n").filter(Boolean).join(", ")}
+                  </p>
+                )}
+                {entry.วันที่จัดตั้ง && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    จัดตั้ง: {new Date(entry.วันที่จัดตั้ง).toLocaleDateString("th-TH")}
+                  </p>
+                )}
               </div>
             );
           })}

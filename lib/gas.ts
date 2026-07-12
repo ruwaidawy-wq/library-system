@@ -183,6 +183,9 @@ export const roomApi = {
   getRoomRegistryByRoom: (roomId: string) =>
     gasRequest<RoomRegistryEntry[]>({ action: "getRoomRegistryByRoom", roomId }),
 
+  getRoomRegistry: () =>
+    gasRequest<RoomRegistryEntry[]>({ action: "getRoomRegistry" }),
+
   addRoomRegistryEntry: (data: {
     roomId: string;
     type?: string;

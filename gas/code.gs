@@ -61,6 +61,7 @@ case "updateActivityStatus": result = updateActivityStatus(data); break;
 case "deleteActivity":       result = deleteActivity(data); break;
 case "searchBook": result = searchBook(data.query); break;
 case "getRoomRegistryByRoom":  result = getRoomRegistryByRoom(data.roomId); break;
+case "getRoomRegistry":        result = getRoomRegistry(); break;
 case "addRoomRegistryEntry":   result = addRoomRegistryEntry(data); break;
 case "updateRoomRegistryEntry":result = updateRoomRegistryEntry(data); break;
 case "deleteRoomRegistryEntry":result = deleteRoomRegistryEntry(data.id); break;
@@ -442,6 +443,10 @@ function getRoomRegistryByRoom(roomId) {
   if (!roomId) return { success: false, error: "ต้องระบุห้อง" };
   const data = sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY));
   return { success: true, data: data.filter(row => String(row["RoomID"]) === String(roomId)) };
+}
+
+function getRoomRegistry() {
+  return { success: true, data: sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY)) };
 }
 
 function addRoomRegistryEntry(data) {
