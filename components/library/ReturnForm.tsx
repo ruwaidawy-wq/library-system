@@ -34,7 +34,7 @@ export default function ReturnForm() {
     setLoadingBooks(false);
     if (res.success && res.data) {
       const active = res.data.filter(
-  (b) => b.ชื่อผู้ยืม === teacher &&
+  (b) => b.ชื่อผู้ยืม === teacher["ชื่อ-นามสกุล"] &&
     (b.สถานะ === "ยืมอยู่" || b.สถานะ === "รอยืม" || b.สถานะ === "รอคืน")
 );
       setBorrowedBooks(active);
