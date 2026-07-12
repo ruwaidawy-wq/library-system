@@ -106,7 +106,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
         <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
           ทะเบียนแหล่งเรียนรู้ {entries.length > 0 && `(${entries.length})`}
         </h2>
-        {isAdminMode && !showForm && (
+        {!showForm && (
           <button onClick={openAdd}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-white text-sm font-medium"
             style={{ background: "#065f46" }}>
