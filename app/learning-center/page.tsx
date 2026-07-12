@@ -170,10 +170,10 @@ export default function LearningCenterPage() {
                 </span>
               )}
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-lg font-bold text-white"
+                className="w-10 h-10 shrink-0 rounded-xl flex items-center justify-center mb-3 text-lg font-bold text-white overflow-hidden"
                 style={{ background: isActive ? "linear-gradient(135deg, #065f46, #059669)" : "#e2e8f0" }}>
                 <span style={{ color: isActive ? "white" : "#94a3b8", fontSize: "12px" }}>
-                  {room.name.includes("ห้องเรียน") ? room.name.replace("ห้องเรียน ", "") : "🏫"}
+                  {room.name.match(/^ห้องเรียน\s+([๐-๙0-9]+)/)?.[1] || "🏫"}
                 </span>
               </div>
               <p className="text-sm font-semibold text-slate-700 leading-tight line-clamp-2 break-words min-h-[2.5rem]">{room.name}</p>
