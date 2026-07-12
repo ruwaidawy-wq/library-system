@@ -1,9 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Save, Users, Calendar, Image } from "lucide-react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Save, Users, Calendar, Image, Printer, Pen } from "lucide-react";
 import Link from "next/link";
 import { learningApi, CheckIn } from "@/lib/gas";
 import { roomApi, RoomRegistry } from "@/lib/gas";
+import SignaturePad from "@/components/SignaturePad";
+
+const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 
 const ALL_ROOMS: Record<string, string> = {
   "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
@@ -75,6 +78,10 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [actDetail, setActDetail] = useState("");
   const [actKnowledge, setActKnowledge] = useState("");
   const [actPhotos, setActPhotos] = useState<string[]>([]);
+  const [actRecorder, setActRecorder] = useState("");
+  const [actPosition, setActPosition] = useState("");
+  const [actSignature, setActSignature] = useState<string | null>(null);
+  const [showSignPad, setShowSignPad] = useState(false);
   const [actSubmitting, setActSubmitting] = useState(false);
   const [actSuccess, setActSuccess] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -151,9 +158,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         activityDetail: actDetail,
         knowledge: actKnowledge,
         imageUrl: actPhotos.join(","),
-        signature: "",
-        recorder: "",
-        position: "",
+        signature: actSignature || "",
+        recorder: actRecorder,
+        position: actPosition,
       }),
     });
     const data = await res.json();
@@ -184,7 +191,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-2">
+      <div className="no-print flex items-center gap-3 mb-2">
         <Link href="/learning-center"
           className="p-2 rounded-xl bg-white shadow-sm hover:shadow-md transition-all text-slate-500">
           <ArrowLeft size={20} />
@@ -209,7 +216,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
       {/* Admin Login Modal */}
       {showAdminLogin && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+        <div className="no-print fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
           onClick={() => setShowAdminLogin(false)}>
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
             onClick={e => e.stopPropagation()}>
@@ -236,7 +243,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       )}
 
       {/* Mini Stats */}
-      <div className="grid grid-cols-2 gap-3 my-4">
+      <div className="no-print grid grid-cols-2 gap-3 my-4">
         <div className="bg-white rounded-2xl shadow p-4 text-center">
           <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{checkins.length}</p>
           <p className="text-xs text-slate-500 mt-1">เช็คอินทั้งหมด</p>
@@ -248,7 +255,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       </div>
 
       {/* Tabs */}
-      <div className="flex rounded-2xl p-1 mb-6" style={{ background: "#ecfdf5" }}>
+      <div className="no-print flex rounded-2xl p-1 mb-6" style={{ background: "#ecfdf5" }}>
         {tabs.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition-all"
@@ -373,71 +380,172 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
       {/* TAB: บันทึกกิจกรรม */}
       {activeTab === "activity" && (
-        <div className="bg-white rounded-2xl shadow p-6">
-          <h2 className="font-semibold text-lg mb-4" style={{ color: "#065f46" }}>
-            บันทึกกิจกรรม
-          </h2>
+        <div className="print-area bg-white rounded-2xl shadow p-6">
+          <div className="no-print flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
+              บันทึกกิจกรรม
+            </h2>
+            <button type="button" onClick={() => window.print()}
+              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-green-400 text-xs">
+              <Printer size={14} /> พิมพ์
+            </button>
+          </div>
 
           {actSuccess && (
-            <div className="bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
+            <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
               <CheckCircle size={16} className="text-green-600" />
               <span className="text-green-700 text-sm">บันทึกกิจกรรมเรียบร้อยแล้ว!</span>
             </div>
           )}
 
-          <form onSubmit={handleAddActivity} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">วันที่ <span className="text-red-500">*</span></label>
-              <input type="date" value={actDate} onChange={e => setActDate(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">รายชื่อนักเรียน</label>
-              <textarea value={actStudents} onChange={e => setActStudents(e.target.value)}
-                rows={3} placeholder="ระบุรายชื่อนักเรียน..."
-                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">ครู/ผู้ดูแล</label>
-              <textarea value={actTeachers} onChange={e => setActTeachers(e.target.value)}
-                rows={2} placeholder="ระบุรายชื่อครู..."
-                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">ลักษณะกิจกรรม <span className="text-red-500">*</span></label>
-              <textarea value={actDetail} onChange={e => setActDetail(e.target.value)}
-                rows={4} placeholder="อธิบายลักษณะกิจกรรม..."
-                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-1">สาระที่ได้รับ</label>
-              <textarea value={actKnowledge} onChange={e => setActKnowledge(e.target.value)}
-                rows={3} placeholder="ระบุสาระที่ได้รับ..."
-                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-600 mb-2">รูปภาพกิจกรรม</label>
-              <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
-              <button type="button" onClick={() => photoInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-green-400 text-sm mb-3">
-                <Camera size={16} /> แนบรูปภาพ
-              </button>
-              {actPhotos.length > 0 && (
-                <div className="grid grid-cols-3 gap-2">
-                  {actPhotos.map((p, i) => (
-                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
-                      <img src={p} alt="" className="w-full h-full object-cover" />
-                      <button type="button" onClick={() => setActPhotos(prev => prev.filter((_, idx) => idx !== i))}
-                        className="absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+          {/* หัวรายงานสำหรับพิมพ์ */}
+          <div className="text-center mb-3">
+            <img src={LOGO_URL} alt="logo" className="mx-auto mb-2"
+              style={{ width: "64px", height: "64px", objectFit: "contain" }} />
+            <p className="font-bold text-base">บันทึกกิจกรรมการเข้าใช้แหล่งเรียนรู้</p>
+            <p className="font-bold text-base">ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
+          </div>
+          <div className="border-t-4 border-b-2 mb-4" style={{ borderColor: "#065f46" }} />
+
+          <form onSubmit={handleAddActivity}>
+            <table className="w-full border-collapse text-sm mb-4" style={{ border: "1px solid #000" }}>
+              <tbody>
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2" style={{ border: "1px solid #000", width: "22%" }}>
+                    วันที่ <span className="no-print text-red-500">*</span>
+                  </td>
+                  <td className="p-2" style={{ border: "1px solid #000", width: "28%" }}>
+                    <input type="date" value={actDate} onChange={e => setActDate(e.target.value)}
+                      className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
+                    <span className="text-sm">
+                      {new Date(actDate).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                    </span>
+                  </td>
+                  <td className="font-semibold bg-slate-50 p-2" style={{ border: "1px solid #000", width: "18%" }}>แหล่งเรียนรู้</td>
+                  <td className="p-2" style={{ border: "1px solid #000", width: "32%" }}>
+                    <span className="text-sm font-medium">{roomName}</span>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>รายชื่อนักเรียน</td>
+                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                    <textarea value={actStudents} onChange={e => setActStudents(e.target.value)}
+                      rows={3} placeholder="ระบุรายชื่อนักเรียน..."
+                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ครู/ผู้ดูแล</td>
+                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                    <textarea value={actTeachers} onChange={e => setActTeachers(e.target.value)}
+                      rows={2} placeholder="ระบุรายชื่อครู..."
+                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>
+                    ลักษณะกิจกรรม <span className="no-print text-red-500">*</span>
+                  </td>
+                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                    <textarea value={actDetail} onChange={e => setActDetail(e.target.value)}
+                      rows={4} placeholder="อธิบายลักษณะกิจกรรม..."
+                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>สาระที่ได้รับ</td>
+                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                    <textarea value={actKnowledge} onChange={e => setActKnowledge(e.target.value)}
+                      rows={3} placeholder="ระบุสาระที่ได้รับ..."
+                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ภาพกิจกรรม</td>
+                  <td colSpan={3} className="p-2" style={{ border: "1px solid #000" }}>
+                    <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
+                    <button type="button" onClick={() => photoInputRef.current?.click()}
+                      className="no-print flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-green-400 text-sm mb-3">
+                      <Camera size={16} /> แนบรูปภาพ
+                    </button>
+                    {actPhotos.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {actPhotos.map((p, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                            <img src={p} alt="" className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => setActPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                              className="no-print absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
+            <table className="w-full border-collapse text-sm" style={{ border: "1px solid #000" }}>
+              <tbody>
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000", width: "22%" }}>
+                    ผู้บันทึก
+                  </td>
+                  <td className="p-2 align-top" style={{ border: "1px solid #000", width: "28%" }}>
+                    <input value={actRecorder} onChange={e => setActRecorder(e.target.value)}
+                      placeholder="ชื่อผู้บันทึก"
+                      className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
+                    <input value={actPosition} onChange={e => setActPosition(e.target.value)}
+                      placeholder="ตำแหน่ง"
+                      className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded" />
+                    <p className="text-sm font-medium mt-1">
+                      {actRecorder || "-"}{actPosition && ` (${actPosition})`}
+                    </p>
+                  </td>
+                  <td className="font-semibold bg-slate-50 p-2 align-top text-center" style={{ border: "1px solid #000", width: "18%" }}>
+                    ลายมือชื่อผู้บันทึก
+                  </td>
+                  <td className="p-2 text-center align-middle" style={{ border: "1px solid #000", width: "32%" }}>
+                    {actSignature ? (
+                      <div className="relative inline-block">
+                        <img src={actSignature} alt="ลายเซ็น" className="h-14 object-contain mx-auto" />
+                        <button type="button" onClick={() => setActSignature(null)}
+                          className="no-print absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="no-print">
+                        {showSignPad ? (
+                          <div className="border border-slate-200 rounded-lg p-2 bg-slate-50">
+                            <SignaturePad zone="learn"
+                              onSave={dataUrl => { setActSignature(dataUrl); setShowSignPad(false); }} />
+                            <button type="button" onClick={() => setShowSignPad(false)}
+                              className="text-xs text-slate-400 mt-1">ยกเลิก</button>
+                          </div>
+                        ) : (
+                          <button type="button" onClick={() => setShowSignPad(true)}
+                            className="flex flex-col items-center gap-1 mx-auto text-slate-400 hover:text-green-500">
+                            <Pen size={20} />
+                            <span className="text-xs">กดลงลายมือชื่อ</span>
+                          </button>
+                        )}
+                        <div className="border-b border-slate-300 mt-2 mx-2" />
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+
             <button type="submit" disabled={actSubmitting || !actDetail}
-              className="w-full py-3 rounded-xl text-white font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+              className="no-print w-full mt-4 py-3 rounded-xl text-white font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "#065f46" }}>
               {actSubmitting ? <><Loader2 size={18} className="animate-spin" /> กำลังบันทึก...</> : <><CheckCircle size={18} /> บันทึกกิจกรรม</>}
             </button>

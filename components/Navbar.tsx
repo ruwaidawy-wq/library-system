@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, GraduationCap, Home, Lock, ClipboardList } from "lucide-react";
+import { BookOpen, GraduationCap, Home, Lock } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -9,7 +9,6 @@ export default function Navbar() {
   const isLibrary = pathname.startsWith("/library");
   const isLearning = pathname.startsWith("/learning-center") || pathname.startsWith("/checkin");
   const isAdmin = pathname.startsWith("/admin");
-  const isActivity = pathname.startsWith("/activity");
 
   const bgColor = isLibrary
     ? "#1e3a5f"
@@ -17,8 +16,6 @@ export default function Navbar() {
     ? "#065f46"
     : isAdmin
     ? "#1a202c"
-    : isActivity
-    ? "#065f46"
     : "#1a202c";
 
   const zoneLabel = isLibrary
@@ -27,14 +24,11 @@ export default function Navbar() {
     ? "แหล่งเรียนรู้"
     : isAdmin
     ? "Admin Panel"
-    : isActivity
-    ? "บันทึกกิจกรรม"
     : "หน้าหลัก";
 
   const navLinks = [
     { href: "/library", label: "ห้องสมุด", icon: <BookOpen size={14} />, active: isLibrary },
     { href: "/learning-center", label: "แหล่งเรียนรู้", icon: <GraduationCap size={14} />, active: isLearning },
-    { href: "/activity", label: "บันทึกกิจกรรม", icon: <ClipboardList size={14} />, active: isActivity },
     { href: "/admin", label: "Admin", icon: <Lock size={14} />, active: isAdmin },
   ];
 
@@ -44,7 +38,7 @@ export default function Navbar() {
         <Link href="/" className="flex items-center gap-2 text-white font-semibold">
           {isLibrary ? (
             <BookOpen size={20} />
-          ) : isLearning || isActivity ? (
+          ) : isLearning ? (
             <GraduationCap size={20} />
           ) : isAdmin ? (
             <Lock size={20} />
