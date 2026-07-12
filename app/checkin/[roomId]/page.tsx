@@ -1,467 +1,449 @@
 "use client";
-import { useState } from "react";
-import { QrCode, User, CheckCircle, Loader2, AlertCircle, Search, Plus, X } from "lucide-react";
-import { learningApi } from "@/lib/gas";
-const TEACHER_LIST = [
-  { name: "นายกฤษฎา แก้วประดับ", position: "ผู้อำนวยการ" },
-  { name: "นายสุกกรี วามะ", position: "รองผู้อำนวยการ" },
-  { name: "นางนภาพร คงสอน", position: "รองผู้อำนวยการ" },
-  { name: "นายสาธิด วารีกุล", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางสาวสัณฑ์สินี ทองเจือเพชร", position: "ครูชำนาญการพิเศษ" },
-  { name: "นายเดชา ภุมมาวงศ์", position: "ครูชำนาญการพิเศษ" },
-  { name: "นายพัทพล เพ็ชรสุวรรณ์", position: "ครูชำนาญการพิเศษ" },
-  { name: "นายอนุสารน์ ไกรแก้ว", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางถนอมศรี แงแก้ว", position: "ครูชำนาญการพิเศษ" },
-  { name: "นายจีระพงศ์ เพียรเจริญ", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางนิภาภรณ์ ก้งท้ง", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางไรหนับ หมัดสะอิ", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางสุชาดา ทวีทรัพย์", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางสาวนูรีมัน วุนชูแก้ว", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางสาวศุภวรรณ พุทธสุภะ", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางนารถฤดี อนุจันทร์", position: "ครูชำนาญการพิเศษ" },
-  { name: "ว่าที่ ร.ต.หญิงสิริรัตน์ นกแก้ว", position: "ครู คศ.๓" },
-  { name: "นางจันทนี จิดละเอียด", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางสาวรัตน์ติกาล ฤทธิ์รักษา", position: "ครูชำนาญการพิเศษ" },
-  { name: "นางสาวดุสิตา สันซัง", position: "ครูชำนาญการพิเศษ" },
-  { name: "นายนัธทวัฒน์ มารักษา", position: "ครูชำนาญการ" },
-  { name: "นายปรเมศร์ บำรุงหนูไหม", position: "ครูชำนาญการ" },
-  { name: "นางสาววรรณภา อุปการัตน์", position: "ครูชำนาญการ" },
-  { name: "นางสาวอรจิรา มณีรัตนสุบรรณ", position: "ครูชำนาญการ" },
-  { name: "นางสาวอารีย์ ใบดิน", position: "ครูชำนาญการ" },
-  { name: "นางธีมาพร ทองเจือเพชร", position: "ครูชำนาญการ" },
-  { name: "นางดวงกมล อุบล", position: "ครูชำนาญการ" },
-  { name: "นางสาวชัญญานุช สุวรรณนิตย์", position: "ครูชำนาญการ" },
-  { name: "นางสาวกมลวรรณ บุญมาก", position: "ครู คศ.๒" },
-  { name: "นางสาวอามีร่าห์ จินเดหวา", position: "ครู คศ.๒" },
-  { name: "นางสาวอรอนงค์ ภูมิพงศ์ไทย", position: "ครู คศ.๒" },
-  { name: "นายอริวัฒน์ สรรเพชร", position: "ครู คศ.๒" },
-  { name: "นางสาววิรัลทิพย์ มุณีรัตน์", position: "ครู คศ.๒" },
-  { name: "นางสาวหนึ่งฤทัย แสงศรี", position: "ครูชำนาญการ" },
-  { name: "นางสาววิชุดา จันท์รัดนะ", position: "ครูชำนาญการ" },
-  { name: "นางสาวจุไรวรรณ สุวรรณมณี", position: "ครูชำนาญการ" },
-  { name: "นางพิไลวรรณ์ ธรรมเพ็ชร", position: "ครูชำนาญการ" },
-  { name: "นางสาวศศิวิมล เจริญวิริยะภาพ", position: "ครูชำนาญการ" },
-  { name: "นางสาวพีรนุช หิรัญวงศ์", position: "ครูชำนาญการ" },
-  { name: "นางณัฐมน สาระเจริญ", position: "ครูชำนาญการ" },
-  { name: "นางจุฑามาส ธีรภาพสถาพร", position: "ครูชำนาญการ" },
-  { name: "นางสาวเนตรทราย แหละปานแก้ว", position: "ครูชำนาญการ" },
-  { name: "นางสุกัลญา เซ็นมุลิ", position: "ครูชำนาญการ" },
-  { name: "นางสาวอัมพวัน แก้วเพชร", position: "ครูชำนาญการ" },
-  { name: "นางสาวกิ่งกาญจน์ ตันติวุฒิ", position: "ครูชำนาญการ" },
-  { name: "นายนุรดิน ยูโซะ", position: "ครูชำนาญการ" },
-  { name: "นายกิตติพงษ์ บิลหร่อทีม", position: "ครู" },
-  { name: "นางสาวสุมณฑา บิลเดช", position: "ครู" },
-  { name: "ว่าที่ ร.ต.หญิงจินดา ทองวิเชียร", position: "ครู" },
-  { name: "นางสาวพัชรพร หนูอ่อน", position: "ครู" },
-  { name: "นางสุจารี ถาวรจิตต์", position: "ครู" },
-  { name: "นางสาวชุติมา เอกนก", position: "ครู" },
-  { name: "นางสาวอาริญา เกิดชู", position: "ครู" },
-  { name: "นางสาวฟารีนัส สามัญ", position: "ครู" },
-  { name: "ว่าที่ ร.ต.อับดุลรอฟิก ยะสะแต", position: "ครู" },
-  { name: "นายพิศาล เพ็ชรสุวรรณ์", position: "ครู" },
-  { name: "นางสาวชญาดา โกมาด", position: "ครู" },
-  { name: "นางสาววรางคณางค์ ลานแดง", position: "ครู" },
-  { name: "นางสาวณัชชา เพ็ชรรัตน์", position: "ครู" },
-  { name: "นายฐปกรณ์ หุลกิจ", position: "ครู" },
-  { name: "นางสาวณัฏฐินี คงทอง", position: "ครู" },
-  { name: "นายรุสมาน ดาเยะ", position: "ครู" },
-  { name: "นางสาววรรณพร เสน่หา", position: "ครู" },
-  { name: "นางภารดี คงสี", position: "ครู" },
-  { name: "นางนริสา เส็นหลีหมึน", position: "ครู" },
-  { name: "นางสาวจุรีรัตน์ นุรักษ์", position: "ครู" },
-  { name: "นางเยาวธิดา รัดญา", position: "ครู" },
-  { name: "นางสาวรูวัยดา หวังยี", position: "ครู" },
-  { name: "นายวิชยา ไชยแก้ว", position: "ครู" },
-  { name: "นางสาวประกายฟ้า ปวีณพงศ์", position: "ครู" },
-  { name: "นางสาวธัญวลัย นวลละออง", position: "ครู" },
-  { name: "นางสาววศินี ทิพย์รองพล", position: "ครู" },
-  { name: "นางสาวนริศรา ผิวผ่อง", position: "ครู" },
-  { name: "นางสาวนพัฐธิกา กิตติยศพัฒน์", position: "ครู" },
-  { name: "นางสาวสุรัสวดี ศิริพันธ์", position: "ครู" },
-  { name: "นางสาวนุชนารถ หมัดอะดั้ม", position: "ครู" },
-  { name: "นายจารึก นุ่นศรี", position: "ครูผู้ช่วย" },
-  { name: "นางสาวมารียะ สะอะ", position: "ครูผู้ช่วย" },
-  { name: "นายศุภวุฒิ ทองเจือเพชร", position: "ครูผู้ช่วย" },
-  { name: "นางสาวสิรดา ทองแกมแก้ว", position: "ครูผู้ช่วย" },
-  { name: "นางสาววันวิสา สุขสว่างผล", position: "ครูผู้ช่วย" },
-  { name: "นายรอมือลี สาและ", position: "ครูผู้ช่วย" },
-  { name: "นางสาวมารีณีย์ ตาเยะ", position: "ครูผู้ช่วย" },
-  { name: "นางจารุวรรณ จันทชาติ", position: "ครูผู้สอน" },
-  { name: "นางสิริพร หลีสุวรรณ", position: "ครูผู้สอน" },
-  { name: "นางรุสณีย์ ด่าหละ", position: "ครูผู้สอน" },
-  { name: "นางสาวสุคนธมาศ รักเสมอ", position: "ครูผู้สอน" },
-  { name: "ว่าที่ ร.ต.หญิง เดชินี หมัดอาดัม", position: "ครูผู้สอน" },
-  { name: "นายพชร อินทะมาตย์", position: "ครูผู้สอน" },
-  { name: "นางสาวอัสมา ปรีพันธ์", position: "ครูผู้สอน" },
-  { name: "นางสาวจิรฐา ขุนฤทธิ์สง", position: "ครูผู้สอน" },
-  { name: "นายวราห์ หมายดี", position: "ครูผู้สอน" },
-  { name: "นางสาวกุลธิดา ชูมณี", position: "ครูผู้สอน" },
-  { name: "นางสาวคัมพิรา ชูประดิษ", position: "ครูผู้สอน" },
-  { name: "นางสาววนิดา ประสมพงค์", position: "ครูผู้สอน" },
-  { name: "นางสาวปภาวรา สรรเสริญ", position: "ครูผู้สอน" },
-  { name: "นางสาวกันย์สินี ซูมิ", position: "ครูผู้สอน" },
-  { name: "นางสาวอารยา บิลหรืม", position: "ครูผู้สอน" },
-  { name: "นางสาวนิชการ เกื้อสกุล", position: "ครูผู้สอน" },
-  { name: "นางสาวอัยนี ดีแม", position: "ครูผู้สอน" },
-  { name: "นางสาวสุนิษา คลังธาร", position: "ครูผู้สอน" },
-  { name: "นางสาวนิกัษมา หนิเต็ม", position: "ครูผู้สอน" },
-  { name: "นางสาววรัญญา นพภาศรี", position: "ครูผู้สอน" },
-  { name: "นางสาวลดาวัลย์ รัศมี", position: "ครูผู้สอน" },
-  { name: "นางสาวณรัญญา อักษรชู", position: "คนครัว" },
-  { name: "นางสาวลักษิกา วิไลรัตน์", position: "พนักงานพิมพ์เบรลล์" },
-  { name: "นางสาวศศิวรรณ เพชรรัตน์", position: "ครูอัตราจ้าง" },
-  { name: "นายไสฟูดิน สาและ", position: "ครูอัตราจ้าง" },
-  { name: "นางสาวจิตนา นุ่นศรี", position: "ครูอัตราจ้าง" },
-  { name: "นางสาวพัชรี ดิสรังโส", position: "ธุรการ" },
-  { name: "นายทินกร เพ็ชรสุวรรณ์", position: "พนักงานขับรถยนด์" },
-  { name: "นายบุญเกื้อ สุขสบาย", position: "พนักงานขับรถยนด์" },
-  { name: "นายอาบิด เจ๊ะมี", position: "นักการ" },
-  { name: "นางสาวนิตยา ทองเพชรคง", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวพวงทอง มะณีบัว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวธัญญารัด น์ รัดนบริพันธ์", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางนิดา ณ พัทลุง", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสุนิสา ยอดแก้ว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวปิยธิดา เมืองน้อย", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวไมมูน๊ะ หลีสุวรรณ", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางชนิสรา ด่าแก้ว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวพันธ์ทิพย์ สุขเอียด", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นายซอลีฮี มะดาแฮ", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวโสรยา สันเบ็ญหมัด", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางยุพิน อยู่สุข", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสุดาวดี ขวัญจินดา", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวธนิสร สุวรรณโณ", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวนุชจรี แงสีด่า", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวชนัญญ์ทิชา มุสิแก้ว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางศิริพร หนูน้อย", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวนัฐการณ์ จันทร์ช่วย", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวกนกวรรณ หนูแก้ว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวนุสบา ผลาวนิตย์", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวจารุวรรณ จาโร", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวอารดี แก้วนิล", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นายอนุวัฒน์ ปัดตะเน", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นายวงศกร ไชยแก้ว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาววรรณวนัช เอกนก", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางอนันท์ แก้วพึ่งบุญ", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวนภิษา สังข์น้อย", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวจุฑาวรรณ์ รงฤทธิ์", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นายอานาส หะมีแย", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวอรวี สันดิเพชร", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางกาญจนา หนูคง", position: "พี่เลี้ยงเด็กปัญญาอ่อน" },
-  { name: "นางสาวจันทร์จิรา ชูแว่น", position: "พี่เลี้ยงเด็กปัญญาอ่อน" },
-  { name: "นางสาวนูรี หะมะ", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นายมุสลิม วุ่นชูแก้ว", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวเกศรา ถินะผจญ", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวธัญดา อริยนันทกุล", position: "พี่เลี้ยงเด็กพิการ" },
-  { name: "นางสาวสุภาวดี แก้วมณี", position: "พี่เลี้ยงเด็กพิการ" }
+import { useState, useEffect, useRef } from "react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Save, Users, Calendar, Image } from "lucide-react";
+import Link from "next/link";
+import { learningApi, CheckIn } from "@/lib/gas";
+import { roomApi, RoomRegistry } from "@/lib/gas";
+
+const ALL_ROOMS: Record<string, string> = {
+  "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
+  "room-4": "ห้องเรียน ๔", "room-5": "ห้องเรียน ๕", "room-6": "ห้องเรียน ๖",
+  "room-7": "ห้องเรียน ๗", "room-8": "ห้องเรียน ๘", "room-9": "ห้องเรียน ๙",
+  "room-10": "ห้องเรียน ๑๐ (หน่วยบริการสทิงพระ)",
+  "room-11": "ห้องเรียน ๑๑ (หน่วยบริการสิงหนคร)",
+  "room-12": "ห้องเรียน ๑๒ (หน่วยบริการหาดใหญ่)",
+  "room-13": "ห้องเรียน ๑๓ (หน่วยบริการเทพา)",
+  "room-14": "ห้องเรียน ๑๔ (หน่วยบริการสะบ้าย้อย)",
+  "room-15": "ห้องเรียน ๑๕ (หน่วยบริการระโนด)",
+  "room-pt": "ห้องกายภาพบำบัด",
+  "room-thai": "ห้องแพทย์แผนไทย",
+  "room-sport": "ห้องกิจกรรมการฟื้นฟูสมรรถภาพ การกีฬา",
+  "room-art": "ห้องศิลปะบำบัด",
+  "room-speech": "ห้องอรรถบำบัด",
+  "room-career": "ห้องฝึกทักษะพื้นฐานอาชีพ",
+  "room-music": "ห้องดนตรี",
+  "room-ot": "ห้องกิจกรรมบำบัด",
+  "room-autism1": "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนเทศบาล 2(บ้านหาดใหญ่)",
+  "room-autism2": "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนวัดเจริญภูผา",
+  "room-autism3": "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนบ้านทำเนียบ",
+  "room-ict": "ศูนย์เทคโนโลยีสารสนเทศเด็กเจ็บป่วยในโรงพยาบาลหาดใหญ่",
+  "room-16": "ห้องเรียน ๑๖ (หน่วยบริการเมืองสงขลา)",
+  "room-17": "ห้องเรียน ๑๗ (หน่วยบริการคลองหอยโข่ง)",
+  "room-18": "ห้องเรียน ๑๘ (หน่วยบริการสะเดา)",
+  "room-19": "ห้องเรียน ๑๙ (หน่วยบริการนาหม่อม)",
+  "room-20": "ห้องเรียน ๒๐ (หน่วยบริการนาทวี)",
+  "room-21": "ห้องเรียน ๒๑ (หน่วยบริการควนเนียง)",
+  "room-22": "ห้องเรียน ๒๒ (หน่วยบริการบางกล่ำ)",
+  "room-23": "ห้องเรียน ๒๓ (หน่วยบริการรัตภูมิ)",
+  "room-24": "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)",
+};
+
+const ROOM_TYPES = [
+  "ห้องเรียน", "ห้องบำบัด", "ห้องกิจกรรม", "ห้องดนตรี",
+  "ห้องศิลปะ", "ห้องฝึกอาชีพ", "ห้องเรียนคู่ขนาน", "ศูนย์เทคโนโลยี", "อื่นๆ"
 ];
 
-const STUDENTS: { name: string; room: string }[] = [
-  { name: "เด็กหญิงรุ่งนภา หมัดหมัน", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กหญิงภัคภัสร์ปภา ปาณะศรี", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กหญิงจัสมิน อะหวัง", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายนันทวัฒน์ เม๊าะรัตน์", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายซัลฟา ดอเลาะ", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายภูวเดช ศรีสุวรรณ", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กหญิงอารียา หมุสา", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายสกรรจ์ ไชยสาลี", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายมูฮัมหมัดฮาฟิต มะลี", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายกวินกานต์ สังขะหรี", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายวุฒิกร จันทร์รัตนะ", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กหญิงปภัสสร ชูชนะ", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายมุกตารี เจะหนิ", room: "ห้องเตรียมความพร้อม 1" },
-  { name: "เด็กชายฟาเดล ใบโดย", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กชายอักรอบีน ดนหรอหมาน", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กหญิงซิลมีย์ หมัดเบ็ญหมูด", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กชายมูฮัมหมัดฮาฟิส สันดาโอ๊ะ", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กหญิงรุสณี หม๊ะบ๊ะ", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กหญิงอารีน่า บิลละหีม", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กชายธนกฤต พรรณราย", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กหญิงซูไฮลา ขรีดาโอะ", room: "ห้องเตรียมความพร้อม 2" },
-  { name: "เด็กชายพลกร แก้วศรี", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กหญิงพิชชานัณ หนูแก้ว", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "นางสาวสุธิมา กุ้งแก้ว", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กหญิงนันธิดา รอดชู", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กชายมูฮัมหมัดฟาเอสร์ โต๊ะสลำ", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กชายมูฮำหมัดอัสลัน หวาหลำ", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กชายสิงหรัตน์ หมัดแหล๊ะ", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กชายชนกภณ ชุมนิรัตน์", room: "ห้องเตรียมความพร้อม 3" },
-  { name: "เด็กชายซุลกิฟลี สาและสา", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กหญิงรัศม์ณชากร ยอดสวัสดิ์", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กชายมาวิน พม่า", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กหญิงแวฮารีซ่า เหมเภอ", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กหญิงปัญญาพร เขมาภิระโต", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กชายธีรเดช หมิดหมัน", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กชายณัฐพัชร์ หัสเส็น", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กชายมูฮัมหมัดอีดีนฟิตรี อุมา", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "เด็กหญิงนัจญวา มาหัด", room: "ห้องเตรียมความพร้อม 4" },
-  { name: "นายนำพล แดงหลี", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายกฤชณัท ศิริรัตน์", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายอินอาม บิลลิหมัด", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายอาโนว์ชัชวาล เหมแก้ว", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายคชาเพชร บูบาสอ", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายวีระกาลย์ หมันหลี", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายฟาเดล ละหมาน", room: "ห้องเตรียมความพร้อม 5" },
-  { name: "เด็กชายวันอัสรี เมาะหรัด", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กชายภูมินทร์ หิรัญวิริยะ", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กชายภคพล เกิดพันธ์", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กหญิงกชพร องอาจ", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กหญิงพัณณิตา วงค์สนิท", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กชายไซอิด โรเมล ฮอสเซ็น", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กชายอัฎฎาฮา ดุนี", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กชายอัครวินทร์ หนูหรีม", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กชายธีรวิทย์ บุญญะ", room: "ห้องเตรียมความพร้อม 6" },
-  { name: "เด็กหญิงฮานิ เหนียวย้อย", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายอนาวิน เอียดวารี", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กหญิงยศวดี บัวผุด", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายชัยอนันต์ พรหมเจริญ", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายภัคดีบดินทร์ กลับกล่อม", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กหญิงอลิสสา บุญทอง", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "นายณนน หมุดเส็ม", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายอนุสรณ์ หัดสหมัด", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายปิยพัฒน์ โต๊ะอิด", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายศิวบุญ มีเสน", room: "ห้องเตรียมความพร้อม 7" },
-  { name: "เด็กชายสราวุฒิ หนุดทอง", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กหญิงตัสนีม ดินอะ", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กหญิงวิภาวดี พาพันธ์", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กหญิงนัสรีน สือแลแม", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กหญิงราฮีมา อิบู", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กชายกวิน แซ่คุง", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กชายกิตติ์ชานันท์ เหมือนเสน", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กหญิงขวัญจิรา มูเก็ม", room: "ห้องเตรียมความพร้อม 8" },
-  { name: "เด็กชายธันวา จันทพันธ์", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กหญิงกัญญาภัค สังข์ทอง", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กหญิงธัญชนก บัวชุม", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กหญิงกานต์นิชา หัสเส็น", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กหญิงอิสริญา อิสลาม", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กหญิงฮาสาน๊ะ บินเตล็บ", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กชายบุญรอด บทจร", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กชายปองพล ทองไชย", room: "ห้องเตรียมความพร้อม 9" },
-  { name: "เด็กหญิงสุไรยา สอโส๊ะ", room: "ห้องเตรียมความพร้อม 9" },
-];
+type Tab = "info" | "checkin" | "activity";
 
-const RECEIVED_OPTIONS = [
-  "หนังสือ", "เอกสาร", "ความรู้", "สื่อการเรียน", "อุปกรณ์การเรียน", "อื่นๆ"
-];
+export default function RoomPage({ params }: { params: { roomId: string } }) {
+  const roomId = params.roomId;
+  const roomName = ALL_ROOMS[roomId] || roomId;
 
-export default function CheckInPage({ params }: { params: { roomId: string } }) {
-  const roomDisplay = decodeURIComponent(params.roomId).replace(/-/g, " ");
+  const [activeTab, setActiveTab] = useState<Tab>("info");
+  const [registry, setRegistry] = useState<RoomRegistry | null>(null);
+  const [checkins, setCheckins] = useState<CheckIn[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdminMode, setIsAdminMode] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [adminError, setAdminError] = useState("");
 
-  const [teacherQuery, setTeacherQuery] = useState("");
-  const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
-  const [selectedTeacher, setSelectedTeacher] = useState("");
+  // Edit form
+  const [editType, setEditType] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editEquip, setEditEquip] = useState("");
+  const [editResponsible, setEditResponsible] = useState("");
+  const [editEstablished, setEditEstablished] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const [studentQuery, setStudentQuery] = useState("");
-  const [showStudentDropdown, setShowStudentDropdown] = useState(false);
-  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  // Activity form
+  const [actDate, setActDate] = useState(new Date().toISOString().split("T")[0]);
+  const [actStudents, setActStudents] = useState("");
+  const [actTeachers, setActTeachers] = useState("");
+  const [actDetail, setActDetail] = useState("");
+  const [actKnowledge, setActKnowledge] = useState("");
+  const [actPhotos, setActPhotos] = useState<string[]>([]);
+  const [actSubmitting, setActSubmitting] = useState(false);
+  const [actSuccess, setActSuccess] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
-  const [received, setReceived] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState("");
+  useEffect(() => {
+    Promise.all([
+      roomApi.getRoomById(roomId),
+      learningApi.getCheckInsByRoom(roomName),
+    ]).then(([reg, ci]) => {
+      if (reg.success && reg.data) {
+        setRegistry(reg.data);
+        setEditType(reg.data.ประเภท || "");
+        setEditDesc(reg.data.รายละเอียด || "");
+        setEditEquip(reg.data["อุปกรณ์/สื่อ"] || "");
+        setEditResponsible(reg.data.ผู้รับผิดชอบ || "");
+        setEditEstablished(reg.data.วันที่จัดตั้ง || "");
+        setEditImageUrl(reg.data.รูปภาพURL || "");
+      }
+      if (ci.success && ci.data) setCheckins(ci.data);
+      setLoading(false);
+    });
+  }, [roomId, roomName]);
 
-  const filteredTeachers = TEACHER_LIST.filter(t =>
-    (t.name + t.position).includes(teacherQuery)
-  );
-
-  const roomStudents = STUDENTS.filter(s => s.room === roomDisplay).map(s => s.name);
-  const filteredStudents = roomStudents.filter(s =>
-    s.includes(studentQuery) && !selectedStudents.includes(s)
-  );
-
-  async function handleSubmit(e: React.FormEvent) {
+  function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedTeacher) {
-      setError("กรุณาเลือกชื่อครู");
-      return;
-    }
-    if (selectedStudents.length === 0) {
-      setError("กรุณาเลือกชื่อนักเรียนอย่างน้อย 1 คน");
-      return;
-    }
-    setSubmitting(true);
-    setError("");
-
-    // บันทึกทีละคน
-    let allSuccess = true;
-    for (const studentName of selectedStudents) {
-      const res = await learningApi.checkIn({
-        roomNumber: roomDisplay,
-        teacherName: selectedTeacher,
-        studentName,
-        received,
-      });
-      if (!res.success) { allSuccess = false; }
-    }
-
-    setSubmitting(false);
-    if (allSuccess) {
-      setSuccess(true);
+    if (adminPassword === "admin1234") {
+      setIsAdminMode(true);
+      setShowAdminLogin(false);
+      setAdminError("");
     } else {
-      setError("เกิดข้อผิดพลาดบางส่วน กรุณาลองใหม่");
+      setAdminError("รหัสผ่านไม่ถูกต้อง");
     }
   }
 
-  if (success) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6"
-        style={{ background: "linear-gradient(135deg, #065f46, #059669)" }}>
-        <div className="bg-white rounded-3xl p-8 text-center max-w-sm w-full shadow-2xl">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={40} className="text-green-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-green-700 mb-2">เช็คอินสำเร็จ!</h2>
-          <p className="text-slate-600 mb-1">ห้อง <strong>{roomDisplay}</strong></p>
-          <p className="text-slate-500 text-sm mb-1">ครู: {selectedTeacher}</p>
-          <p className="text-slate-500 text-sm">นักเรียน {selectedStudents.length} คน</p>
-          <button
-            onClick={() => {
-              setSuccess(false);
-              setSelectedTeacher("");
-              setTeacherQuery("");
-              setSelectedStudents([]);
-              setStudentQuery("");
-              setReceived("");
-            }}
-            className="mt-6 w-full py-3 rounded-xl text-white font-semibold"
-            style={{ background: "#065f46" }}
-          >
-            เช็คอินอีกครั้ง
-          </button>
-        </div>
-      </div>
-    );
+  async function handleSaveRegistry() {
+    setSaving(true);
+    await roomApi.updateRoomRegistry({
+      roomId,
+      type: editType,
+      description: editDesc,
+      equipment: editEquip,
+      responsible: editResponsible,
+      imageUrl: editImageUrl,
+      established: editEstablished,
+    });
+    setSaving(false);
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 3000);
   }
+
+  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => setActPhotos(prev => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleAddActivity(e: React.FormEvent) {
+    e.preventDefault();
+    if (!actDate || !actDetail) { return; }
+    setActSubmitting(true);
+    const res = await fetch("/api/gas", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "addActivity",
+        date: actDate,
+        roomNumber: roomName,
+        students: actStudents,
+        teachers: actTeachers,
+        learningSource: roomName,
+        activityDetail: actDetail,
+        knowledge: actKnowledge,
+        imageUrl: actPhotos.join(","),
+        signature: "",
+        recorder: "",
+        position: "",
+      }),
+    });
+    const data = await res.json();
+    setActSubmitting(false);
+    if (data.success) {
+      setActSuccess(true);
+      setActStudents("");
+      setActTeachers("");
+      setActDetail("");
+      setActKnowledge("");
+      setActPhotos([]);
+      setActDate(new Date().toISOString().split("T")[0]);
+      setTimeout(() => setActSuccess(false), 4000);
+    }
+  }
+
+  const todayCheckins = checkins.filter(c => {
+    const d = new Date(c.Timestamp).toLocaleDateString("th-TH");
+    return d === new Date().toLocaleDateString("th-TH");
+  }).length;
+
+  const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
+    { id: "info", label: "ทะเบียนห้อง", icon: <Edit2 size={16} /> },
+    { id: "checkin", label: "ประวัติเช็คอิน", icon: <Users size={16} /> },
+    { id: "activity", label: "บันทึกกิจกรรม", icon: <Image size={16} /> },
+  ];
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6"
-      style={{ background: "linear-gradient(135deg, #065f46, #059669)" }}>
-      <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl">
-        {/* Room Badge */}
-        <div className="text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-3"
-            style={{ background: "#ecfdf5" }}>
-            <QrCode size={32} style={{ color: "#065f46" }} />
-          </div>
-          <p className="text-slate-500 text-sm">แหล่งเรียนรู้</p>
-          <h1 className="text-2xl font-bold" style={{ color: "#065f46" }}>{roomDisplay}</h1>
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-2">
+        <Link href="/learning-center"
+          className="p-2 rounded-xl bg-white shadow-sm hover:shadow-md transition-all text-slate-500">
+          <ArrowLeft size={20} />
+        </Link>
+        <div className="flex-1">
+          <h1 className="font-bold text-xl leading-tight" style={{ color: "#065f46" }}>{roomName}</h1>
+          <p className="text-slate-400 text-xs">แหล่งเรียนรู้ • ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓</p>
         </div>
-
-        {error && (
-          <div className="bg-red-50 border-2 border-red-300 rounded-xl p-3 mb-4 flex items-center gap-2">
-            <AlertCircle size={18} className="text-red-600" />
-            <span className="text-red-700 text-sm">{error}</span>
-          </div>
+        {!isAdminMode && (
+          <button onClick={() => setShowAdminLogin(true)}
+            className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50">
+            Admin
+          </button>
         )}
+        {isAdminMode && (
+          <span className="text-xs px-3 py-1.5 rounded-lg font-medium"
+            style={{ background: "#dcfce7", color: "#15803d" }}>
+            ✓ Admin Mode
+          </span>
+        )}
+      </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-
-          {/* Teacher */}
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              ชื่อครูผู้ดูแล <span className="text-red-500">*</span>
-            </label>
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      {/* Admin Login Modal */}
+      {showAdminLogin && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setShowAdminLogin(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl"
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-4" style={{ color: "#1e3a5f" }}>เข้าสู่ระบบ Admin</h3>
+            {adminError && (
+              <p className="text-red-600 text-sm mb-3">{adminError}</p>
+            )}
+            <form onSubmit={handleAdminLogin} className="space-y-3">
               <input
-                className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400"
-                placeholder="ค้นหาชื่อครู..."
-                value={teacherQuery}
-                onChange={e => { setTeacherQuery(e.target.value); setShowTeacherDropdown(true); setSelectedTeacher(""); }}
-                onFocus={() => setShowTeacherDropdown(true)}
-                onBlur={() => setTimeout(() => setShowTeacherDropdown(false), 200)}
+                type="password"
+                placeholder="รหัสผ่าน Admin"
+                value={adminPassword}
+                onChange={e => setAdminPassword(e.target.value)}
+                className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl outline-none focus:border-blue-400"
               />
-              {selectedTeacher && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 w-2 h-2 bg-green-500 rounded-full" />
+              <button type="submit"
+                className="w-full py-3 rounded-xl text-white font-semibold"
+                style={{ background: "#1e3a5f" }}>
+                เข้าสู่ระบบ
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Mini Stats */}
+      <div className="grid grid-cols-2 gap-3 my-4">
+        <div className="bg-white rounded-2xl shadow p-4 text-center">
+          <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{checkins.length}</p>
+          <p className="text-xs text-slate-500 mt-1">เช็คอินทั้งหมด</p>
+        </div>
+        <div className="bg-white rounded-2xl shadow p-4 text-center">
+          <p className="text-3xl font-bold" style={{ color: "#f59e0b" }}>{todayCheckins}</p>
+          <p className="text-xs text-slate-500 mt-1">วันนี้</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex rounded-2xl p-1 mb-6" style={{ background: "#ecfdf5" }}>
+        {tabs.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-xs font-medium transition-all"
+            style={activeTab === tab.id
+              ? { background: "#065f46", color: "white" }
+              : { color: "#065f46", opacity: 0.7 }}>
+            {tab.icon} {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* TAB: ทะเบียนห้อง */}
+      {activeTab === "info" && (
+        <div className="bg-white rounded-2xl shadow p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>ทะเบียนแหล่งเรียนรู้</h2>
+            {isAdminMode && (
+              <button onClick={handleSaveRegistry} disabled={saving}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl text-white text-sm font-medium disabled:opacity-50"
+                style={{ background: "#065f46" }}>
+                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                บันทึก
+              </button>
+            )}
+          </div>
+
+          {saveSuccess && (
+            <div className="bg-green-50 border border-green-300 rounded-xl p-3 flex items-center gap-2">
+              <CheckCircle size={16} className="text-green-600" />
+              <span className="text-green-700 text-sm">บันทึกข้อมูลเรียบร้อยแล้ว</span>
+            </div>
+          )}
+
+          {/* Room Image */}
+          {(editImageUrl || isAdminMode) && (
+            <div>
+              {editImageUrl && (
+                <img src={editImageUrl} alt={roomName}
+                  className="w-full h-48 object-cover rounded-xl mb-2" />
+              )}
+              {isAdminMode && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">URL รูปภาพห้อง</label>
+                  <input
+                    value={editImageUrl}
+                    onChange={e => setEditImageUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400"
+                  />
+                </div>
               )}
             </div>
-            {showTeacherDropdown && filteredTeachers.length > 0 && (
-              <div className="border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto mt-1 bg-white">
-                {filteredTeachers.map(t => (
-                  <button key={t.name} type="button"
-                    onMouseDown={() => { setSelectedTeacher(t.name); setTeacherQuery(`${t.name} (${t.position})`); setShowTeacherDropdown(false); }}
-                    className="w-full text-left px-3 py-2 hover:bg-green-50 text-xs transition-colors">
-                    <span className="font-medium">{t.name}</span>
-                    <span className="text-slate-400 ml-1">({t.position})</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
 
-          {/* Students */}
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              รายชื่อนักเรียน <span className="text-red-500">*</span>
-            </label>
-            {selectedStudents.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-2">
-                {selectedStudents.map(s => (
-                  <span key={s} className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium"
-                    style={{ background: "#ecfdf5", color: "#065f46" }}>
-                    {s}
-                    <button type="button" onClick={() => setSelectedStudents(prev => prev.filter(x => x !== s))}>
-                      <X size={12} />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-            <div className="relative">
-              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400"
-                placeholder="ค้นหาชื่อนักเรียน..."
-                value={studentQuery}
-                onChange={e => { setStudentQuery(e.target.value); setShowStudentDropdown(true); }}
-                onFocus={() => setShowStudentDropdown(true)}
-                onBlur={() => setTimeout(() => setShowStudentDropdown(false), 200)}
-              />
+          {/* Fields */}
+          {[
+            { label: "ชื่อห้อง", value: roomName, editable: false },
+            { label: "ประเภท", value: editType, setter: setEditType, isSelect: true },
+            { label: "รายละเอียด", value: editDesc, setter: setEditDesc, isTextarea: true },
+            { label: "อุปกรณ์/สื่อการเรียนรู้", value: editEquip, setter: setEditEquip, isTextarea: true },
+            { label: "ผู้รับผิดชอบ", value: editResponsible, setter: setEditResponsible },
+            { label: "วันที่จัดตั้ง", value: editEstablished, setter: setEditEstablished, isDate: true },
+          ].map((field) => (
+            <div key={field.label}>
+              <label className="block text-sm font-medium text-slate-500 mb-1">{field.label}</label>
+              {!isAdminMode || field.editable === false ? (
+                <p className="text-slate-800 bg-slate-50 rounded-xl px-3 py-2 text-sm min-h-[40px]">
+                  {field.value || <span className="text-slate-300">ยังไม่มีข้อมูล</span>}
+                </p>
+              ) : field.isSelect ? (
+                <select value={field.value} onChange={e => field.setter?.(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 appearance-none bg-white">
+                  <option value="">-- เลือกประเภท --</option>
+                  {ROOM_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              ) : field.isTextarea ? (
+                <textarea value={field.value} onChange={e => field.setter?.(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+              ) : field.isDate ? (
+                <input type="date" value={field.value} onChange={e => field.setter?.(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+              ) : (
+                <input value={field.value} onChange={e => field.setter?.(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+              )}
             </div>
-            {showStudentDropdown && filteredStudents.length > 0 && (
-              <div className="border border-slate-200 rounded-xl shadow-lg max-h-40 overflow-y-auto mt-1 bg-white">
-                {filteredStudents.map(s => (
-                  <button key={s} type="button"
-                    onMouseDown={() => { setSelectedStudents(prev => [...prev, s]); setStudentQuery(""); }}
-                    className="w-full text-left px-3 py-2 hover:bg-green-50 text-xs transition-colors flex items-center gap-2">
-                    <Plus size={12} className="text-green-500" /> {s}
-                  </button>
-                ))}
-              </div>
-            )}
-            {roomStudents.length === 0 && (
-              <p className="text-xs text-slate-400 mt-1">ไม่พบนักเรียนในห้องนี้</p>
-            )}
-          </div>
+          ))}
+        </div>
+      )}
 
-          {/* Received */}
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">
-              สิ่งที่ได้รับ
-            </label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {RECEIVED_OPTIONS.map(opt => (
-                <button key={opt} type="button"
-                  onClick={() => setReceived(received === opt ? "" : opt)}
-                  className="px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-all"
-                  style={received === opt
-                    ? { borderColor: "#065f46", background: "#065f46", color: "white" }
-                    : { borderColor: "#e2e8f0", color: "#475569" }}>
-                  {opt}
-                </button>
+      {/* TAB: ประวัติเช็คอิน */}
+      {activeTab === "checkin" && (
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="font-semibold text-lg mb-4" style={{ color: "#065f46" }}>
+            ประวัติการเช็คอิน ({checkins.length} ครั้ง)
+          </h2>
+          {checkins.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-8">ยังไม่มีการเช็คอิน</p>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {[...checkins].reverse().map((c, i) => (
+                <div key={i} className="border border-slate-100 rounded-xl p-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="font-medium text-slate-800 text-sm">{c.ชื่อนักเรียน}</p>
+                      <p className="text-xs text-slate-400">ครู: {c.ชื่อครู}</p>
+                      {c.สิ่งที่ได้รับ && (
+                        <p className="text-xs text-slate-500 mt-0.5">ได้รับ: {c.สิ่งที่ได้รับ}</p>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-400">
+                      {c.Timestamp ? new Date(c.Timestamp).toLocaleDateString("th-TH") : ""}
+                    </p>
+                  </div>
+                </div>
               ))}
             </div>
-          </div>
+          )}
+        </div>
+      )}
 
-          <button type="submit" disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold disabled:opacity-40"
-            style={{ background: "#065f46" }}>
-            {submitting
-              ? <><Loader2 size={18} className="animate-spin" /> กำลังเช็คอิน...</>
-              : <><CheckCircle size={18} /> เช็คอิน</>
-            }
-          </button>
-        </form>
-      </div>
+      {/* TAB: บันทึกกิจกรรม */}
+      {activeTab === "activity" && (
+        <div className="bg-white rounded-2xl shadow p-6">
+          <h2 className="font-semibold text-lg mb-4" style={{ color: "#065f46" }}>
+            บันทึกกิจกรรม
+          </h2>
+
+          {actSuccess && (
+            <div className="bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
+              <CheckCircle size={16} className="text-green-600" />
+              <span className="text-green-700 text-sm">บันทึกกิจกรรมเรียบร้อยแล้ว!</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAddActivity} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">วันที่ <span className="text-red-500">*</span></label>
+              <input type="date" value={actDate} onChange={e => setActDate(e.target.value)}
+                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">รายชื่อนักเรียน</label>
+              <textarea value={actStudents} onChange={e => setActStudents(e.target.value)}
+                rows={3} placeholder="ระบุรายชื่อนักเรียน..."
+                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">ครู/ผู้ดูแล</label>
+              <textarea value={actTeachers} onChange={e => setActTeachers(e.target.value)}
+                rows={2} placeholder="ระบุรายชื่อครู..."
+                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">ลักษณะกิจกรรม <span className="text-red-500">*</span></label>
+              <textarea value={actDetail} onChange={e => setActDetail(e.target.value)}
+                rows={4} placeholder="อธิบายลักษณะกิจกรรม..."
+                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-1">สาระที่ได้รับ</label>
+              <textarea value={actKnowledge} onChange={e => setActKnowledge(e.target.value)}
+                rows={3} placeholder="ระบุสาระที่ได้รับ..."
+                className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-600 mb-2">รูปภาพกิจกรรม</label>
+              <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
+              <button type="button" onClick={() => photoInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-green-400 text-sm mb-3">
+                <Camera size={16} /> แนบรูปภาพ
+              </button>
+              {actPhotos.length > 0 && (
+                <div className="grid grid-cols-3 gap-2">
+                  {actPhotos.map((p, i) => (
+                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                      <img src={p} alt="" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => setActPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                        className="absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <button type="submit" disabled={actSubmitting || !actDetail}
+              className="w-full py-3 rounded-xl text-white font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
+              style={{ background: "#065f46" }}>
+              {actSubmitting ? <><Loader2 size={18} className="animate-spin" /> กำลังบันทึก...</> : <><CheckCircle size={18} /> บันทึกกิจกรรม</>}
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

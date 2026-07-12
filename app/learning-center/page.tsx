@@ -6,30 +6,21 @@ import { learningApi, LeaderboardEntry } from "@/lib/gas";
 import { roomApi, RoomRegistry } from "@/lib/gas";
 
 const ALL_ROOMS = [
-  { id: "room-1", name: "ห้องเรียน 1" },
-  { id: "room-2", name: "ห้องเรียน 2" },
-  { id: "room-3", name: "ห้องเรียน 3" },
-  { id: "room-4", name: "ห้องเรียน 4" },
-  { id: "room-5", name: "ห้องเรียน 5" },
-  { id: "room-6", name: "ห้องเรียน 6" },
-  { id: "room-7", name: "ห้องเรียน 7" },
-  { id: "room-8", name: "ห้องเรียน 8" },
-  { id: "room-9", name: "ห้องเรียน 9" },
-  { id: "room-10", name: "ห้องเรียน 10" },
-  { id: "room-11", name: "ห้องเรียน 11" },
-  { id: "room-12", name: "ห้องเรียน 12" },
-  { id: "room-13", name: "ห้องเรียน 13" },
-  { id: "room-14", name: "ห้องเรียน 14" },
-  { id: "room-15", name: "ห้องเรียน 15" },
-  { id: "room-16", name: "ห้องเรียน 16" },
-  { id: "room-17", name: "ห้องเรียน 17" },
-  { id: "room-18", name: "ห้องเรียน 18" },
-  { id: "room-19", name: "ห้องเรียน 19" },
-  { id: "room-20", name: "ห้องเรียน 20" },
-  { id: "room-21", name: "ห้องเรียน 21" },
-  { id: "room-22", name: "ห้องเรียน 22" },
-  { id: "room-23", name: "ห้องเรียน 23" },
-  { id: "room-24", name: "ห้องเรียน 24" },
+  { id: "room-1", name: "ห้องเรียน ๑" },
+  { id: "room-2", name: "ห้องเรียน ๒" },
+  { id: "room-3", name: "ห้องเรียน ๓" },
+  { id: "room-4", name: "ห้องเรียน ๔" },
+  { id: "room-5", name: "ห้องเรียน ๕" },
+  { id: "room-6", name: "ห้องเรียน ๖" },
+  { id: "room-7", name: "ห้องเรียน ๗" },
+  { id: "room-8", name: "ห้องเรียน ๘" },
+  { id: "room-9", name: "ห้องเรียน ๙" },
+  { id: "room-10", name: "ห้องเรียน ๑๐ (หน่วยบริการสทิงพระ)" },
+  { id: "room-11", name: "ห้องเรียน ๑๑ (หน่วยบริการสิงหนคร)" },
+  { id: "room-12", name: "ห้องเรียน ๑๒ (หน่วยบริการหาดใหญ่)" },
+  { id: "room-13", name: "ห้องเรียน ๑๓ (หน่วยบริการเทพา)" },
+  { id: "room-14", name: "ห้องเรียน ๑๔ (หน่วยบริการสะบ้าย้อย)" },
+  { id: "room-15", name: "ห้องเรียน ๑๕ (หน่วยบริการระโนด)" },
   { id: "room-pt", name: "ห้องกายภาพบำบัด" },
   { id: "room-thai", name: "ห้องแพทย์แผนไทย" },
   { id: "room-sport", name: "ห้องกิจกรรมการฟื้นฟูสมรรถภาพ การกีฬา" },
@@ -42,6 +33,15 @@ const ALL_ROOMS = [
   { id: "room-autism2", name: "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนวัดเจริญภูผา" },
   { id: "room-autism3", name: "ห้องเรียนคู่ขนานบุคคลออทิสติกโรงเรียนบ้านทำเนียบ" },
   { id: "room-ict", name: "ศูนย์เทคโนโลยีสารสนเทศเด็กเจ็บป่วยในโรงพยาบาลหาดใหญ่" },
+  { id: "room-16", name: "ห้องเรียน ๑๖ (หน่วยบริการเมืองสงขลา)" },
+  { id: "room-17", name: "ห้องเรียน ๑๗ (หน่วยบริการคลองหอยโข่ง)" },
+  { id: "room-18", name: "ห้องเรียน ๑๘ (หน่วยบริการสะเดา)" },
+  { id: "room-19", name: "ห้องเรียน ๑๙ (หน่วยบริการนาหม่อม)" },
+  { id: "room-20", name: "ห้องเรียน ๒๐ (หน่วยบริการนาทวี)" },
+  { id: "room-21", name: "ห้องเรียน ๒๑ (หน่วยบริการควนเนียง)" },
+  { id: "room-22", name: "ห้องเรียน ๒๒ (หน่วยบริการบางกล่ำ)" },
+  { id: "room-23", name: "ห้องเรียน ๒๓ (หน่วยบริการรัตภูมิ)" },
+  { id: "room-24", name: "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)" },
 ];
 
 export default function LearningCenterPage() {
@@ -160,7 +160,7 @@ export default function LearningCenterPage() {
             <Link
               key={room.id}
               href={`/learning-center/${room.id}`}
-              className="bg-white rounded-2xl shadow p-4 hover:shadow-md hover:-translate-y-1 transition-all relative block"
+              className="bg-white rounded-2xl shadow p-4 hover:shadow-md hover:-translate-y-1 transition-all relative block min-h-[132px]"
             >
               {isActive && (
                 <span
@@ -176,7 +176,7 @@ export default function LearningCenterPage() {
                   {room.name.includes("ห้องเรียน") ? room.name.replace("ห้องเรียน ", "") : "🏫"}
                 </span>
               </div>
-              <p className="text-sm font-semibold text-slate-700 leading-tight line-clamp-2">{room.name}</p>
+              <p className="text-sm font-semibold text-slate-700 leading-tight line-clamp-2 break-words min-h-[2.5rem]">{room.name}</p>
               <p className="text-xs text-slate-400 mt-1">
                 {isActive ? `${count} ครั้ง` : "ยังไม่มีการเข้าใช้"}
               </p>

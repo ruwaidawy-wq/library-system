@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BookOpen, GraduationCap, Home, Lock, ClipboardList, QrCode } from "lucide-react";
+import { BookOpen, GraduationCap, Home, Lock, ClipboardList } from "lucide-react";
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -36,7 +36,6 @@ export default function Navbar() {
     { href: "/learning-center", label: "แหล่งเรียนรู้", icon: <GraduationCap size={14} />, active: isLearning },
     { href: "/activity", label: "บันทึกกิจกรรม", icon: <ClipboardList size={14} />, active: isActivity },
     { href: "/admin", label: "Admin", icon: <Lock size={14} />, active: isAdmin },
-    { href: "/qrcode", label: "QR Code", icon: <QrCode size={14} />, active: pathname.startsWith("/qrcode") },
   ];
 
   return (

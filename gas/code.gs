@@ -46,6 +46,7 @@ if (e.postData) {
       case "getBooks":       result = getBooks(); break;
       case "checkOverdue":   result = checkOverdue(data.teacherName); break;
       case "borrowBook":     result = borrowBook(data); break;
+      case "approveBorrow":  result = approveBorrow(data); break;
       case "returnBook":     result = returnBook(data); break;
       case "getBorrowLog":   result = getBorrowLog(); break;
       case "checkIn":        result = checkIn(data); break;
@@ -150,6 +151,46 @@ logSheet.appendRow([
 
   sendLineNotify(`📚 คำขอยืมหนังสือใหม่\nครู: ${teacherName}\nหนังสือ: ${book["ชื่อหนังสือ"]} (${bookId})\nกำหนดคืน: ${dueDate}`);
   return { success: true, borrowId: id };
+}
+
+function approveBorrow(data) {
+  const { borrowId } = data;
+  if (!borrowId) return { success: false, error: "ต้องระบุ Borrow ID" };
+
+  const sheet = getSheet(SHEETS.BORROW_LOG);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+
+  const idIdx     = headers.indexOf("ID");
+  const statusIdx = headers.indexOf("สถานะ");
+  const bookIdIdx = headers.indexOf("รหัสหนังสือ");
+
+  let rowIndex = -1;
+  let rowData = null;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === borrowId) {
+      rowIndex = i + 1;
+      rowData = allData[i];
+      break;
+    }
+  }
+  if (rowIndex === -1) return { success: false, error: "ไม่พบรายการยืม" };
+  if (rowData[statusIdx] !== "รอยืม")
+    return { success: false, error: "รายการนี้ไม่ได้อยู่ในสถานะรอยืม" };
+
+  sheet.getRange(rowIndex, statusIdx + 1).setValue("ยืมอยู่");
+
+  const bookId = rowData[bookIdIdx];
+  const bookSheet = getSheet(SHEETS.BOOKS);
+  const bookData = bookSheet.getDataRange().getValues();
+  for (let i = 1; i < bookData.length; i++) {
+    if (bookData[i][0] === bookId) {
+      bookSheet.getRange(i + 1, 3).setValue("ถูกยืม");
+      break;
+    }
+  }
+
+  return { success: true };
 }
 
 function returnBook(data) {
