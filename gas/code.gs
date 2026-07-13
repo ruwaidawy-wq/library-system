@@ -60,6 +60,7 @@ if (e.postData) {
 case "updateActivityStatus": result = updateActivityStatus(data); break;
 case "deleteActivity":       result = deleteActivity(data); break;
 case "searchBook": result = searchBook(data.query); break;
+case "updatePaymentStatus": result = updatePaymentStatus(data); break;
 case "getRoomRegistryByRoom":  result = getRoomRegistryByRoom(data.roomId); break;
 case "getRoomRegistry":        result = getRoomRegistry(); break;
 case "addRoomRegistryEntry":   result = addRoomRegistryEntry(data); break;
@@ -226,7 +227,7 @@ function returnBook(data) {
   }
   if (rowIndex === -1) return { success: false, error: "ไม่พบรายการยืม" };
 
-  const today = new Date();
+  const today = data.actualReturnDate ? new Date(data.actualReturnDate) : new Date();
   let fine = 0;
   let newStatus = "";
   const bookId = rowData[bookIdIdx];
@@ -234,6 +235,10 @@ function returnBook(data) {
   if (returnStatus === "pending") {
     // ผู้ใช้ส่งคำขอคืน — รอ Admin
     sheet.getRange(rowIndex, statusIdx + 1).setValue("รอคืน");
+    // บันทึกวันคืนจริงที่ครูระบุ
+    if (data.actualReturnDate) {
+      sheet.getRange(rowIndex, returnDateIdx + 1).setValue(new Date(data.actualReturnDate));
+    }
     return { success: true, fine: 0 };
   }
 
@@ -291,6 +296,30 @@ if (todayDate > dueDateOnly) {
 
 function getBorrowLog() {
   return { success: true, data: sheetToJSON(getSheet(SHEETS.BORROW_LOG)) };
+}
+
+function updatePaymentStatus(data) {
+  const { borrowId, paymentStatus } = data;
+  const sheet = getSheet(SHEETS.BORROW_LOG);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0];
+  const idIdx = headers.indexOf("ID");
+
+  // เพิ่ม column "สถานะชำระ" ถ้ายังไม่มี
+  let payIdx = headers.indexOf("สถานะชำระ");
+  if (payIdx === -1) {
+    const lastCol = headers.length + 1;
+    sheet.getRange(1, lastCol).setValue("สถานะชำระ");
+    payIdx = lastCol - 1;
+  }
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === borrowId) {
+      sheet.getRange(i + 1, payIdx + 1).setValue(paymentStatus);
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบรายการ" };
 }
 
 // ============================================================
@@ -425,6 +454,12 @@ function searchBook(query) {
     String(b["ชื่อหนังสือ"]).includes(query)
   );
   if (!found) return { success: false, error: "ไม่พบหนังสือรหัส/ชื่อ: " + query };
+  if (found["สถานะ"] !== "พร้อมให้ยืม") {
+    return {
+      success: false,
+      error: `หนังสือ "${found["ชื่อหนังสือ"]}" ไม่พร้อมให้ยืม (สถานะ: ${found["สถานะ"]})`
+    };
+  }
   return {
     success: true,
     data: {
