@@ -277,8 +277,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                     className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 appearance-none bg-white">
                     <option value="">-- ไม่ระบุ / ทั้งห้อง --</option>
                     {registryEntries.map(entry => (
-                      <option key={entry.ID} value={entry.ประเภท || entry.ID}>
-                        {entry.ประเภท || "ไม่ระบุประเภท"}{entry.รายละเอียด ? ` — ${entry.รายละเอียด}` : ""}
+                      <option key={entry.ID} value={entry.ชื่อ || entry.ประเภท || entry.ID}>
+                        {entry.ชื่อ || entry.ประเภท || "ไม่ระบุชื่อ"}{entry.ประเภท ? ` (${entry.ประเภท})` : ""}
                       </option>
                     ))}
                   </select>

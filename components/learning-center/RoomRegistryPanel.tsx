@@ -21,6 +21,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
   const [saving, setSaving] = useState(false);
   const [submittedPending, setSubmittedPending] = useState(false);
 
+  const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formEquip, setFormEquip] = useState("");
@@ -40,6 +41,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
 
   function resetForm() {
     setEditingId(null);
+    setFormName("");
     setFormType("");
     setFormDesc("");
     setFormEquip("");
@@ -55,6 +57,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
 
   function openEdit(entry: RoomRegistryEntry) {
     setEditingId(entry.ID);
+    setFormName(entry.ชื่อ || "");
     setFormType(entry.ประเภท || "");
     setFormDesc(entry.รายละเอียด || "");
     setFormEquip(entry["อุปกรณ์/สื่อ"] || "");
@@ -77,6 +80,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
     e.preventDefault();
     setSaving(true);
     const payload = {
+      name: formName,
       type: formType,
       description: formDesc,
       equipment: formEquip,
@@ -110,7 +114,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
   }
 
   async function handleDelete(entry: RoomRegistryEntry) {
-    if (!confirm(`ต้องการลบ "${entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
+    if (!confirm(`ต้องการลบ "${entry.ชื่อ || entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
     await roomApi.deleteRoomRegistryEntry(entry.ID);
     load();
   }
@@ -150,6 +154,14 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
 
       {showForm && (
         <form onSubmit={handleSubmit} className="border-2 border-dashed border-slate-200 rounded-xl p-4 space-y-3">
+          <div>
+            <label className="block text-sm font-medium text-slate-500 mb-1">
+              ชื่อ <span className="text-red-500">*</span>
+            </label>
+            <input value={formName} onChange={e => setFormName(e.target.value)}
+              placeholder="เช่น มุมหนังสือนิทาน, มุมของเล่นพัฒนากล้ามเนื้อ"
+              className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-500 mb-1">ประเภท</label>
             <select value={formType} onChange={e => setFormType(e.target.value)}
@@ -203,7 +215,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
             )}
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={saving || !formName}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
               style={{ background: "#065f46" }}>
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
@@ -232,6 +244,9 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
               <div key={entry.ID} className={`border rounded-xl p-4 ${isPending ? "border-purple-200 bg-purple-50/40" : "border-slate-100"}`}>
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold text-slate-800 text-sm">
+                      {entry.ชื่อ || "ไม่ระบุชื่อ"}
+                    </span>
                     <span className="text-xs px-2 py-1 rounded-full font-medium"
                       style={{ background: "#ecfdf5", color: "#065f46" }}>
                       {entry.ประเภท || "ไม่ระบุประเภท"}

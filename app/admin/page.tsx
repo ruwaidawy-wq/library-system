@@ -173,7 +173,7 @@ if (data.success) {
     const res = await roomApi.approveRoomRegistryEntry(entry.ID);
     setProcessing(null);
     if (res.success) {
-      setRegistrySuccess(`อนุมัติแหล่งเรียนรู้ "${entry.ประเภท || entry.ID}" แล้ว`);
+      setRegistrySuccess(`อนุมัติแหล่งเรียนรู้ "${entry.ชื่อ || entry.ประเภท || entry.ID}" แล้ว`);
       setTimeout(() => setRegistrySuccess(""), 3000);
     } else {
       setRegistryError(res.error || "อนุมัติไม่สำเร็จ");
@@ -182,7 +182,7 @@ if (data.success) {
   }
 
   async function handleRegistryDelete(entry: RoomRegistryEntry) {
-    if (!confirm(`ต้องการลบ "${entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
+    if (!confirm(`ต้องการลบ "${entry.ชื่อ || entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
     setProcessing(entry.ID);
     const res = await roomApi.deleteRoomRegistryEntry(entry.ID);
     setProcessing(null);
@@ -785,8 +785,9 @@ if (data.success) {
                           <div className="flex items-start justify-between mb-2">
                             <div>
                               <p className="font-semibold text-slate-800">
-                                {ALL_ROOMS[entry.RoomID] || entry.RoomID}
+                                {entry.ชื่อ || "ไม่ระบุชื่อ"}
                               </p>
+                              <p className="text-xs text-slate-400">{ALL_ROOMS[entry.RoomID] || entry.RoomID}</p>
                               <p className="text-sm text-slate-500">{entry.ประเภท || "ไม่ระบุประเภท"}</p>
                             </div>
                             <span className="text-xs px-2 py-1 rounded-full font-medium"
@@ -839,8 +840,9 @@ if (data.success) {
                         <div className="flex items-start justify-between">
                           <div>
                             <p className="font-semibold text-slate-800">
-                              {ALL_ROOMS[entry.RoomID] || entry.RoomID}
+                              {entry.ชื่อ || "ไม่ระบุชื่อ"}
                             </p>
+                            <p className="text-xs text-slate-400">{ALL_ROOMS[entry.RoomID] || entry.RoomID}</p>
                             <p className="text-sm text-slate-500">{entry.ประเภท || "ไม่ระบุประเภท"}</p>
                             {entry.ผู้รับผิดชอบ && (
                               <p className="text-xs text-slate-400 mt-1">

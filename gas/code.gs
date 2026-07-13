@@ -495,12 +495,12 @@ function getRoomRegistry() {
 }
 
 function addRoomRegistryEntry(data) {
-  const { roomId, type, description, equipment, responsible, established, imageUrl, status } = data;
+  const { roomId, name, type, description, equipment, responsible, established, imageUrl, status } = data;
   if (!roomId) return { success: false, error: "ต้องระบุห้อง" };
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const id = generateID("REG");
   sheet.appendRow([
-    id, roomId, type || "", description || "", equipment || "", responsible || "", established || "", imageUrl || "",
+    id, roomId, name || "", type || "", description || "", equipment || "", responsible || "", established || "", imageUrl || "",
     status || "รออนุมัติ"
   ]);
   return { success: true, id };
@@ -524,7 +524,7 @@ function approveRoomRegistryEntry(id) {
 }
 
 function updateRoomRegistryEntry(data) {
-  const { id, type, description, equipment, responsible, established, imageUrl } = data;
+  const { id, name, type, description, equipment, responsible, established, imageUrl } = data;
   if (!id) return { success: false, error: "ต้องระบุ ID" };
 
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
@@ -535,6 +535,7 @@ function updateRoomRegistryEntry(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       const rowIndex = i + 1;
+      sheet.getRange(rowIndex, headers.indexOf("ชื่อ") + 1).setValue(name || "");
       sheet.getRange(rowIndex, headers.indexOf("ประเภท") + 1).setValue(type || "");
       sheet.getRange(rowIndex, headers.indexOf("รายละเอียด") + 1).setValue(description || "");
       sheet.getRange(rowIndex, headers.indexOf("อุปกรณ์/สื่อ") + 1).setValue(equipment || "");

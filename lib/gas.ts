@@ -174,6 +174,7 @@ export const activityApi = {
 export type RoomRegistryEntry = {
   ID: string;
   RoomID: string;
+  ชื่อ: string;
   ประเภท: string;
   รายละเอียด: string;
   "อุปกรณ์/สื่อ": string;
@@ -192,6 +193,7 @@ export const roomApi = {
 
   addRoomRegistryEntry: (data: {
     roomId: string;
+    name?: string;
     type?: string;
     description?: string;
     equipment?: string;
@@ -206,6 +208,7 @@ export const roomApi = {
 
   updateRoomRegistryEntry: (data: {
     id: string;
+    name?: string;
     type?: string;
     description?: string;
     equipment?: string;
