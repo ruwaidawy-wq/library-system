@@ -62,6 +62,7 @@ export default function AdminPage() {
   const [registryEntries, setRegistryEntries] = useState<RoomRegistryEntry[]>([]);
   const [loadingRegistry, setLoadingRegistry] = useState(false);
   const [registrySuccess, setRegistrySuccess] = useState("");
+  const [registryError, setRegistryError] = useState("");
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -90,7 +91,12 @@ export default function AdminPage() {
   async function loadRegistry() {
     setLoadingRegistry(true);
     const res = await roomApi.getRoomRegistry();
-    if (res.success && res.data) setRegistryEntries(res.data.reverse());
+    if (res.success && res.data) {
+      setRegistryEntries(res.data.reverse());
+      setRegistryError("");
+    } else {
+      setRegistryError(res.error || "โหลดข้อมูลทะเบียนแหล่งเรียนรู้ไม่สำเร็จ");
+    }
     setLoadingRegistry(false);
   }
 
@@ -164,20 +170,28 @@ if (data.success) {
 
   async function handleRegistryApprove(entry: RoomRegistryEntry) {
     setProcessing(entry.ID);
-    await roomApi.approveRoomRegistryEntry(entry.ID);
+    const res = await roomApi.approveRoomRegistryEntry(entry.ID);
     setProcessing(null);
-    setRegistrySuccess(`อนุมัติแหล่งเรียนรู้ "${entry.ประเภท || entry.ID}" แล้ว`);
-    setTimeout(() => setRegistrySuccess(""), 3000);
+    if (res.success) {
+      setRegistrySuccess(`อนุมัติแหล่งเรียนรู้ "${entry.ประเภท || entry.ID}" แล้ว`);
+      setTimeout(() => setRegistrySuccess(""), 3000);
+    } else {
+      setRegistryError(res.error || "อนุมัติไม่สำเร็จ");
+    }
     loadRegistry();
   }
 
   async function handleRegistryDelete(entry: RoomRegistryEntry) {
     if (!confirm(`ต้องการลบ "${entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
     setProcessing(entry.ID);
-    await roomApi.deleteRoomRegistryEntry(entry.ID);
+    const res = await roomApi.deleteRoomRegistryEntry(entry.ID);
     setProcessing(null);
-    setRegistrySuccess("ลบรายการแหล่งเรียนรู้แล้ว");
-    setTimeout(() => setRegistrySuccess(""), 3000);
+    if (res.success) {
+      setRegistrySuccess("ลบรายการแหล่งเรียนรู้แล้ว");
+      setTimeout(() => setRegistrySuccess(""), 3000);
+    } else {
+      setRegistryError(res.error || "ลบไม่สำเร็จ");
+    }
     loadRegistry();
   }
 
@@ -736,6 +750,18 @@ if (data.success) {
             <div className="bg-green-50 border-2 border-green-300 rounded-xl p-4 flex items-center gap-3">
               <CheckCircle size={20} className="text-green-600" />
               <span className="text-green-800 font-medium">{registrySuccess}</span>
+            </div>
+          )}
+
+          {registryError && (
+            <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <span className="text-red-800 font-medium block">{registryError}</span>
+                <span className="text-red-600 text-xs">
+                  ถ้าเพิ่งเพิ่มฟีเจอร์นี้ ให้ตรวจสอบว่า deploy โค้ด Apps Script (gas/code.gs) เวอร์ชันล่าสุดแล้ว และมีชีตชื่อ &quot;Room_Registry&quot; พร้อมหัวตาราง ID, RoomID, ประเภท, รายละเอียด, อุปกรณ์/สื่อ, ผู้รับผิดชอบ, วันที่จัดตั้ง, รูปภาพURL, สถานะ
+                </span>
+              </div>
             </div>
           )}
 
