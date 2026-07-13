@@ -95,7 +95,11 @@ function doOptions(e) {
 }
 
 function getSheet(name) {
-  return SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
+  if (!sheet) {
+    throw new Error(`ไม่พบชีตชื่อ "${name}" ในสเปรดชีต (SPREADSHEET_ID: ${SPREADSHEET_ID}) — ตรวจสอบว่าชื่อแท็บตรงเป๊ะ (ตัวพิมพ์เล็ก/ใหญ่ ขีดล่าง) และสเปรดชีตนี้คือไฟล์เดียวกับที่ deploy ไว้`);
+  }
+  return sheet;
 }
 
 function sheetToJSON(sheet) {
