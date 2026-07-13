@@ -54,6 +54,7 @@ export type CheckIn = {
   สิ่งที่ได้รับ: string;
   Timestamp: string;
   รูปภาพ?: string;
+  แหล่งเรียนรู้ที่ใช้?: string;
 };
 
 export type Activity = {
@@ -121,6 +122,7 @@ export const learningApi = {
     studentName: string;
     received?: string;
     imageUrl?: string;
+    corner?: string;
   }) => gasRequest<{ timestamp: string }>({ action: "checkIn", ...data }),
 
   getCheckInsByRoom: (roomNumber: string) =>

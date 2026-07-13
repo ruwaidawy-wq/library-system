@@ -337,12 +337,12 @@ function updatePaymentStatus(data) {
 // ============================================================
 
 function checkIn(data) {
-  const { roomNumber, teacherName, studentName, received, imageUrl } = data;
+  const { roomNumber, teacherName, studentName, received, imageUrl, corner } = data;
   if (!roomNumber || !teacherName || !studentName)
     return { success: false, error: "ข้อมูลไม่ครบ" };
   const sheet = getSheet(SHEETS.CHECKIN_LOG);
   const timestamp = new Date();
-  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp, imageUrl || ""]);
+  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp, imageUrl || "", corner || ""]);
   return { success: true, timestamp: timestamp.toISOString() };
 }
 

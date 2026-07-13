@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, Calendar, Image, Printer, Pen, LogIn, ImagePlus } from "lucide-react";
 import Link from "next/link";
-import { learningApi, CheckIn } from "@/lib/gas";
+import { learningApi, roomApi, CheckIn, RoomRegistryEntry } from "@/lib/gas";
 import SignaturePad from "@/components/SignaturePad";
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 
@@ -60,9 +60,12 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [ciStudent, setCiStudent] = useState("");
   const [ciTeacher, setCiTeacher] = useState("");
   const [ciReceived, setCiReceived] = useState("");
+  const [ciCorner, setCiCorner] = useState("");
   const [ciPhotos, setCiPhotos] = useState<string[]>([]);
   const [ciSubmitting, setCiSubmitting] = useState(false);
   const [ciSuccess, setCiSuccess] = useState(false);
+  const [ciError, setCiError] = useState("");
+  const [registryEntries, setRegistryEntries] = useState<RoomRegistryEntry[]>([]);
   const ciPhotoInputRef = useRef<HTMLInputElement>(null);
 
   // Activity form
@@ -85,7 +88,10 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       if (ci.success && ci.data) setCheckins(ci.data);
       setLoading(false);
     });
-  }, [roomName]);
+    roomApi.getRoomRegistryByRoom(roomId).then((reg) => {
+      if (reg.success && reg.data) setRegistryEntries(reg.data.filter(e => e.สถานะ === "อนุมัติแล้ว"));
+    });
+  }, [roomId, roomName]);
 
   function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -111,24 +117,29 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     e.preventDefault();
     if (!ciStudent || !ciTeacher) return;
     setCiSubmitting(true);
+    setCiError("");
     const res = await learningApi.checkIn({
       roomNumber: roomName,
       teacherName: ciTeacher,
       studentName: ciStudent,
       received: ciReceived,
       imageUrl: ciPhotos.join(","),
+      corner: ciCorner,
     });
     setCiSubmitting(false);
     if (res.success) {
       setCiStudent("");
       setCiTeacher("");
       setCiReceived("");
+      setCiCorner("");
       setCiPhotos([]);
       setShowCheckinForm(false);
       setCiSuccess(true);
       setTimeout(() => setCiSuccess(false), 4000);
       const ci = await learningApi.getCheckInsByRoom(roomName);
       if (ci.success && ci.data) setCheckins(ci.data);
+    } else {
+      setCiError(res.error || "บันทึกการเข้าใช้ไม่สำเร็จ");
     }
   }
 
@@ -237,21 +248,42 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto"
             onClick={e => e.stopPropagation()}>
             <h3 className="font-bold text-lg mb-4" style={{ color: "#065f46" }}>เข้าใช้ {roomName}</h3>
+            {ciError && (
+              <div className="bg-red-50 border border-red-300 rounded-xl p-3 mb-3 text-red-700 text-sm">
+                {ciError}
+              </div>
+            )}
             <form onSubmit={handleCheckin} className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">
-                  ชื่อนักเรียน <span className="text-red-500">*</span>
+                  ชื่อนักเรียน <span className="text-red-500">*</span> <span className="text-slate-400 font-normal">(ระบุได้หลายคน บรรทัดละ 1 คน)</span>
                 </label>
-                <input value={ciStudent} onChange={e => setCiStudent(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+                <textarea value={ciStudent} onChange={e => setCiStudent(e.target.value)}
+                  rows={2} placeholder="ชื่อนักเรียนคนที่ 1&#10;ชื่อนักเรียนคนที่ 2"
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">
-                  ชื่อครู <span className="text-red-500">*</span>
+                  ชื่อครู <span className="text-red-500">*</span> <span className="text-slate-400 font-normal">(ระบุได้หลายคน บรรทัดละ 1 คน)</span>
                 </label>
-                <input value={ciTeacher} onChange={e => setCiTeacher(e.target.value)}
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+                <textarea value={ciTeacher} onChange={e => setCiTeacher(e.target.value)}
+                  rows={2} placeholder="ชื่อครูคนที่ 1&#10;ชื่อครูคนที่ 2"
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
               </div>
+              {registryEntries.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">แหล่งเรียนรู้ / มุมการศึกษาที่ใช้</label>
+                  <select value={ciCorner} onChange={e => setCiCorner(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 appearance-none bg-white">
+                    <option value="">-- ไม่ระบุ / ทั้งห้อง --</option>
+                    {registryEntries.map(entry => (
+                      <option key={entry.ID} value={entry.ประเภท || entry.ID}>
+                        {entry.ประเภท || "ไม่ระบุประเภท"}{entry.รายละเอียด ? ` — ${entry.รายละเอียด}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">สิ่งที่ได้รับ</label>
                 <input value={ciReceived} onChange={e => setCiReceived(e.target.value)}
@@ -378,12 +410,17 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {[...checkins].reverse().map((c, i) => {
                 const photos = c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : [];
+                const students = c.ชื่อนักเรียน ? c.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ") : "";
+                const teachers = c.ชื่อครู ? c.ชื่อครู.split("\n").filter(Boolean).join(", ") : "";
                 return (
                   <div key={i} className="border border-slate-100 rounded-xl p-3">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <p className="font-medium text-slate-800 text-sm">{c.ชื่อนักเรียน}</p>
-                        <p className="text-xs text-slate-400">ครู: {c.ชื่อครู}</p>
+                        <p className="font-medium text-slate-800 text-sm">{students}</p>
+                        <p className="text-xs text-slate-400">ครู: {teachers}</p>
+                        {c["แหล่งเรียนรู้ที่ใช้"] && (
+                          <p className="text-xs text-slate-500 mt-0.5">มุม: {c["แหล่งเรียนรู้ที่ใช้"]}</p>
+                        )}
                         {c.สิ่งที่ได้รับ && (
                           <p className="text-xs text-slate-500 mt-0.5">ได้รับ: {c.สิ่งที่ได้รับ}</p>
                         )}
