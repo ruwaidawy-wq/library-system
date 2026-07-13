@@ -2,7 +2,7 @@
 // LIBRARY & LEARNING CENTER SYSTEM - Google Apps Script Backend
 // ============================================================
 
-const SPREADSHEET_ID = "1aXH65WG400Oc4N_kxFtLao4KesjfWlmAB8OemxtWt3Q"; // <-- ใส่ ID ของ Google Sheets
+const SPREADSHEET_ID = "1nw4ngoGTDkTZQKb_S6AX7rRsdHW2IAWsPbRWJccDWJo"; // <-- ใส่ ID ของ Google Sheets
 const LINE_NOTIFY_TOKEN = "YOUR_LINE_NOTIFY_TOKEN"; // <-- ใส่ Token ของ Line Notify
 
 // Secret ที่ต้องตรงกับ GAS_SHARED_SECRET ใน .env.local ของเว็บ (app/api/gas/route.ts เป็นผู้แนบให้อัตโนมัติ)
