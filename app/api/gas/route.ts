@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL || "";
+const GAS_SHARED_SECRET = process.env.GAS_SHARED_SECRET || "";
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(
         Object.fromEntries(
-          Object.entries(body).map(([k, v]) => [k, String(v ?? "")])
+          Object.entries({ ...body, token: GAS_SHARED_SECRET }).map(([k, v]) => [k, String(v ?? "")])
         )
       ).toString(),
       redirect: "follow",

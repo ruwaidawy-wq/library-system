@@ -5,6 +5,10 @@
 const SPREADSHEET_ID = "1aXH65WG400Oc4N_kxFtLao4KesjfWlmAB8OemxtWt3Q"; // <-- ใส่ ID ของ Google Sheets
 const LINE_NOTIFY_TOKEN = "YOUR_LINE_NOTIFY_TOKEN"; // <-- ใส่ Token ของ Line Notify
 
+// Secret ที่ต้องตรงกับ GAS_SHARED_SECRET ใน .env.local ของเว็บ (app/api/gas/route.ts เป็นผู้แนบให้อัตโนมัติ)
+// กันไม่ให้คนที่เจอลิงก์ deploy นี้เรียก API ได้ตรงๆ โดยไม่ผ่านเว็บของเรา
+const API_SECRET = "bef55e6be7eaed5a856b2de6c38bc5487dea7d96f10c3883";
+
 const SHEETS = {
   BOOKS: "Books",
   TEACHERS: "Teachers",
@@ -39,6 +43,12 @@ if (e.postData) {
 }
   const data = { ...params, ...postData };
   const action = data.action;
+
+  if (data.token !== API_SECRET) {
+    const output = ContentService.createTextOutput(JSON.stringify({ success: false, error: "Unauthorized" }))
+      .setMimeType(ContentService.MimeType.JSON);
+    return output;
+  }
 
   let result;
   try {
