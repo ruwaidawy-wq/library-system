@@ -53,6 +53,7 @@ export type CheckIn = {
   ชื่อนักเรียน: string;
   สิ่งที่ได้รับ: string;
   Timestamp: string;
+  รูปภาพ?: string;
 };
 
 export type Activity = {
@@ -119,6 +120,7 @@ export const learningApi = {
     teacherName: string;
     studentName: string;
     received?: string;
+    imageUrl?: string;
   }) => gasRequest<{ timestamp: string }>({ action: "checkIn", ...data }),
 
   getCheckInsByRoom: (roomNumber: string) =>

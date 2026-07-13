@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, Calendar, Image, Printer, Pen } from "lucide-react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, Calendar, Image, Printer, Pen, LogIn, ImagePlus } from "lucide-react";
 import Link from "next/link";
 import { learningApi, CheckIn } from "@/lib/gas";
 import SignaturePad from "@/components/SignaturePad";
@@ -55,6 +55,16 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
   const [adminError, setAdminError] = useState("");
 
+  // Check-in form
+  const [showCheckinForm, setShowCheckinForm] = useState(false);
+  const [ciStudent, setCiStudent] = useState("");
+  const [ciTeacher, setCiTeacher] = useState("");
+  const [ciReceived, setCiReceived] = useState("");
+  const [ciPhotos, setCiPhotos] = useState<string[]>([]);
+  const [ciSubmitting, setCiSubmitting] = useState(false);
+  const [ciSuccess, setCiSuccess] = useState(false);
+  const ciPhotoInputRef = useRef<HTMLInputElement>(null);
+
   // Activity form
   const [actDate, setActDate] = useState(new Date().toISOString().split("T")[0]);
   const [actStudents, setActStudents] = useState("");
@@ -85,6 +95,40 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       setAdminError("");
     } else {
       setAdminError("รหัสผ่านไม่ถูกต้อง");
+    }
+  }
+
+  function handleCiPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = () => setCiPhotos(prev => [...prev, reader.result as string]);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleCheckin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!ciStudent || !ciTeacher) return;
+    setCiSubmitting(true);
+    const res = await learningApi.checkIn({
+      roomNumber: roomName,
+      teacherName: ciTeacher,
+      studentName: ciStudent,
+      received: ciReceived,
+      imageUrl: ciPhotos.join(","),
+    });
+    setCiSubmitting(false);
+    if (res.success) {
+      setCiStudent("");
+      setCiTeacher("");
+      setCiReceived("");
+      setCiPhotos([]);
+      setShowCheckinForm(false);
+      setCiSuccess(true);
+      setTimeout(() => setCiSuccess(false), 4000);
+      const ci = await learningApi.getCheckInsByRoom(roomName);
+      if (ci.success && ci.data) setCheckins(ci.data);
     }
   }
 
@@ -138,6 +182,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     return d === new Date().toLocaleDateString("th-TH");
   }).length;
 
+  const checkinPhotos = checkins.flatMap(c => c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : []);
+
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "info", label: "ทะเบียนห้อง", icon: <Edit2 size={16} /> },
     { id: "checkin", label: "ประวัติการเข้าใช้", icon: <Users size={16} /> },
@@ -169,6 +215,85 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           </span>
         )}
       </div>
+
+      {/* ปุ่มเข้าใช้ห้องนี้ */}
+      <button onClick={() => setShowCheckinForm(true)}
+        className="no-print w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold mb-4 hover:opacity-90 transition-all"
+        style={{ background: "linear-gradient(135deg, #065f46, #059669)" }}>
+        <LogIn size={18} /> เข้าใช้ห้องนี้
+      </button>
+
+      {ciSuccess && (
+        <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
+          <CheckCircle size={16} className="text-green-600" />
+          <span className="text-green-700 text-sm">บันทึกการเข้าใช้เรียบร้อยแล้ว!</span>
+        </div>
+      )}
+
+      {/* Check-in Modal */}
+      {showCheckinForm && (
+        <div className="no-print fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4"
+          onClick={() => setShowCheckinForm(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-4" style={{ color: "#065f46" }}>เข้าใช้ {roomName}</h3>
+            <form onSubmit={handleCheckin} className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  ชื่อนักเรียน <span className="text-red-500">*</span>
+                </label>
+                <input value={ciStudent} onChange={e => setCiStudent(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  ชื่อครู <span className="text-red-500">*</span>
+                </label>
+                <input value={ciTeacher} onChange={e => setCiTeacher(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">สิ่งที่ได้รับ</label>
+                <input value={ciReceived} onChange={e => setCiReceived(e.target.value)}
+                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-2">แนบภาพ</label>
+                <input ref={ciPhotoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleCiPhoto} />
+                <button type="button" onClick={() => ciPhotoInputRef.current?.click()}
+                  className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-green-400 text-sm mb-3">
+                  <Camera size={16} /> แนบรูปภาพ
+                </button>
+                {ciPhotos.length > 0 && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {ciPhotos.map((p, i) => (
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                        <img src={p} alt="" className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => setCiPhotos(prev => prev.filter((_, idx) => idx !== i))}
+                          className="absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button type="submit" disabled={ciSubmitting || !ciStudent || !ciTeacher}
+                  className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
+                  style={{ background: "#065f46" }}>
+                  {ciSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                  ยืนยันเข้าใช้
+                </button>
+                <button type="button" onClick={() => setShowCheckinForm(false)}
+                  className="px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-500 text-sm">
+                  ยกเลิก
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Admin Login Modal */}
       {showAdminLogin && (
@@ -231,6 +356,19 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       {/* TAB: ประวัติการเข้าใช้ */}
       {activeTab === "checkin" && (
         <div className="bg-white rounded-2xl shadow p-6">
+          {checkinPhotos.length > 0 && (
+            <div className="mb-5">
+              <h3 className="font-semibold text-sm mb-2 flex items-center gap-1.5 text-slate-600">
+                <ImagePlus size={16} /> ประมวลภาพ ({checkinPhotos.length})
+              </h3>
+              <div className="grid grid-cols-3 gap-2">
+                {checkinPhotos.map((p, i) => (
+                  <img key={i} src={p} alt="" className="aspect-square rounded-lg object-cover w-full" />
+                ))}
+              </div>
+            </div>
+          )}
+
           <h2 className="font-semibold text-lg mb-4" style={{ color: "#065f46" }}>
             ประวัติการเข้าใช้ ({checkins.length} ครั้ง)
           </h2>
@@ -238,22 +376,28 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
             <p className="text-slate-400 text-sm text-center py-8">ยังไม่มีการเข้าใช้</p>
           ) : (
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {[...checkins].reverse().map((c, i) => (
-                <div key={i} className="border border-slate-100 rounded-xl p-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <p className="font-medium text-slate-800 text-sm">{c.ชื่อนักเรียน}</p>
-                      <p className="text-xs text-slate-400">ครู: {c.ชื่อครู}</p>
-                      {c.สิ่งที่ได้รับ && (
-                        <p className="text-xs text-slate-500 mt-0.5">ได้รับ: {c.สิ่งที่ได้รับ}</p>
+              {[...checkins].reverse().map((c, i) => {
+                const photos = c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : [];
+                return (
+                  <div key={i} className="border border-slate-100 rounded-xl p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex-1">
+                        <p className="font-medium text-slate-800 text-sm">{c.ชื่อนักเรียน}</p>
+                        <p className="text-xs text-slate-400">ครู: {c.ชื่อครู}</p>
+                        {c.สิ่งที่ได้รับ && (
+                          <p className="text-xs text-slate-500 mt-0.5">ได้รับ: {c.สิ่งที่ได้รับ}</p>
+                        )}
+                      </div>
+                      {photos.length > 0 && (
+                        <img src={photos[0]} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                       )}
+                      <p className="text-xs text-slate-400 shrink-0">
+                        {c.Timestamp ? new Date(c.Timestamp).toLocaleDateString("th-TH") : ""}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-400">
-                      {c.Timestamp ? new Date(c.Timestamp).toLocaleDateString("th-TH") : ""}
-                    </p>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

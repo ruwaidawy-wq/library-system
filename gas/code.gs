@@ -327,12 +327,12 @@ function updatePaymentStatus(data) {
 // ============================================================
 
 function checkIn(data) {
-  const { roomNumber, teacherName, studentName, received } = data;
+  const { roomNumber, teacherName, studentName, received, imageUrl } = data;
   if (!roomNumber || !teacherName || !studentName)
     return { success: false, error: "ข้อมูลไม่ครบ" };
   const sheet = getSheet(SHEETS.CHECKIN_LOG);
   const timestamp = new Date();
-  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp]);
+  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp, imageUrl || ""]);
   return { success: true, timestamp: timestamp.toISOString() };
 }
 
