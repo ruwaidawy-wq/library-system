@@ -178,6 +178,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     setActSubmitting(false);
     if (data.success) {
       setActSuccess(true);
+      window.print();
       setActStudents("");
       setActTeachers("");
       setActDetail("");
