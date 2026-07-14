@@ -139,7 +139,9 @@ function saveImageToDrive(dataUrl, prefix) {
   const blob = Utilities.newBlob(bytes, mimeType, prefix + "_" + new Date().getTime());
   const file = getUploadFolder().createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  return "https://drive.google.com/uc?export=view&id=" + file.getId();
+  // ใช้ endpoint thumbnail แทน uc?export=view เพราะ export=view มักโดน Google
+  // แสดงหน้า "can't scan for viruses" แทนรูปจริงเวลาฝังใน <img>
+  return "https://drive.google.com/thumbnail?id=" + file.getId() + "&sz=w1000";
 }
 
 function processImageField(value, prefix) {
