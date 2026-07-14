@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, Calendar, Image, Printer, Pen, LogIn, ImagePlus } from "lucide-react";
 import Link from "next/link";
-import { learningApi, roomApi, CheckIn, RoomRegistryEntry } from "@/lib/gas";
+import { learningApi, roomApi, activityApi, CheckIn, RoomRegistryEntry, Activity } from "@/lib/gas";
 import SignaturePad from "@/components/SignaturePad";
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 
@@ -81,6 +81,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [showSignPad, setShowSignPad] = useState(false);
   const [actSubmitting, setActSubmitting] = useState(false);
   const [actSuccess, setActSuccess] = useState(false);
+  const [pendingPrint, setPendingPrint] = useState(false);
+  const [roomActivities, setRoomActivities] = useState<Activity[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -91,7 +93,30 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     roomApi.getRoomRegistryByRoom(roomId).then((reg) => {
       if (reg.success && reg.data) setRegistryEntries(reg.data.filter(e => e.สถานะ === "อนุมัติแล้ว"));
     });
+    activityApi.getActivitiesByRoom(roomName).then((act) => {
+      if (act.success && act.data) setRoomActivities(act.data);
+    });
   }, [roomId, roomName]);
+
+  useEffect(() => {
+    if (pendingPrint) {
+      window.print();
+      setPendingPrint(false);
+    }
+  }, [pendingPrint]);
+
+  function handleViewPdf(activity: Activity) {
+    setActDate(activity.วันที่ ? String(activity.วันที่).split("T")[0] : actDate);
+    setActStudents(activity.รายชื่อนักเรียน || "");
+    setActTeachers(activity.รายชื่อครู || "");
+    setActDetail(activity.ลักษณะกิจกรรม || "");
+    setActKnowledge(activity.สาระที่ได้รับ || "");
+    setActPhotos(activity.ImageURL ? activity.ImageURL.split(",").filter(Boolean) : []);
+    setActSignature(activity.Signature || null);
+    setActRecorder(activity.ผู้บันทึก || "");
+    setActPosition(activity.ตำแหน่ง || "");
+    setPendingPrint(true);
+  }
 
   function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -186,6 +211,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       setActPhotos([]);
       setActDate(new Date().toISOString().split("T")[0]);
       setTimeout(() => setActSuccess(false), 4000);
+      activityApi.getActivitiesByRoom(roomName).then((act) => {
+        if (act.success && act.data) setRoomActivities(act.data);
+      });
     }
   }
 
@@ -613,6 +641,33 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
               {actSubmitting ? <><Loader2 size={18} className="animate-spin" /> กำลังบันทึก...</> : <><CheckCircle size={18} /> บันทึกกิจกรรม</>}
             </button>
           </form>
+
+          <div className="no-print mt-8 pt-6 border-t border-slate-200">
+            <h3 className="font-semibold text-base mb-3" style={{ color: "#065f46" }}>
+              ประวัติการบันทึกกิจกรรม ({roomActivities.length})
+            </h3>
+            {roomActivities.length === 0 ? (
+              <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีประวัติการบันทึกกิจกรรม</p>
+            ) : (
+              <div className="space-y-2">
+                {[...roomActivities].reverse().map((a) => (
+                  <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
+                      <p className="text-xs text-slate-400">
+                        {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : ""}
+                        {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => handleViewPdf(a)}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-green-400 text-xs">
+                      <Printer size={14} /> ดาวน์โหลด PDF
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
