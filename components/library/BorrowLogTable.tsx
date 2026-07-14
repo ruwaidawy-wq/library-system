@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { ClipboardList, Loader2, RefreshCw } from "lucide-react";
 import { libraryApi, BorrowLog } from "@/lib/gas";
+import ZoomableImage from "@/components/ZoomableImage";
 
 export default function BorrowLogTable() {
   const [logs, setLogs] = useState<BorrowLog[]>([]);
@@ -61,10 +62,10 @@ export default function BorrowLogTable() {
                     {(log.รูปปกหน้า || log.รูปปกหลัง) && (
                       <div className="flex gap-1 shrink-0">
                         {log.รูปปกหน้า && (
-                          <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
+                          <ZoomableImage src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
                         )}
                         {log.รูปปกหลัง && (
-                          <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
+                          <ZoomableImage src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
                         )}
                       </div>
                     )}

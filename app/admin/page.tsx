@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { libraryApi, activityApi, roomApi, BorrowLog, Activity, RoomRegistryEntry } from "@/lib/gas";
+import ZoomableImage from "@/components/ZoomableImage";
 
 const ADMIN_PASSWORD = "admin1234";
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
@@ -413,10 +414,10 @@ if (data.success) {
                         {(log.รูปปกหน้า || log.รูปปกหลัง) && (
                           <div className="flex gap-1 shrink-0">
                             {log.รูปปกหน้า && (
-                              <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-14 h-14 rounded-lg object-cover" />
+                              <ZoomableImage src={log.รูปปกหน้า} alt="ปกหน้า" className="w-14 h-14 rounded-lg object-cover" />
                             )}
                             {log.รูปปกหลัง && (
-                              <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-14 h-14 rounded-lg object-cover" />
+                              <ZoomableImage src={log.รูปปกหลัง} alt="ปกหลัง" className="w-14 h-14 rounded-lg object-cover" />
                             )}
                           </div>
                         )}
@@ -468,10 +469,10 @@ if (data.success) {
                           {(log.รูปปกหน้า || log.รูปปกหลัง) && (
                             <div className="flex gap-1 shrink-0">
                               {log.รูปปกหน้า && (
-                                <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-14 h-14 rounded-lg object-cover" />
+                                <ZoomableImage src={log.รูปปกหน้า} alt="ปกหน้า" className="w-14 h-14 rounded-lg object-cover" />
                               )}
                               {log.รูปปกหลัง && (
-                                <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-14 h-14 rounded-lg object-cover" />
+                                <ZoomableImage src={log.รูปปกหลัง} alt="ปกหลัง" className="w-14 h-14 rounded-lg object-cover" />
                               )}
                             </div>
                           )}
@@ -556,10 +557,10 @@ if (data.success) {
                           {(log.รูปปกหน้า || log.รูปปกหลัง) && (
                             <div className="flex gap-1 shrink-0">
                               {log.รูปปกหน้า && (
-                                <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
+                                <ZoomableImage src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
                               )}
                               {log.รูปปกหลัง && (
-                                <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
+                                <ZoomableImage src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
                               )}
                             </div>
                           )}
@@ -601,10 +602,10 @@ if (data.success) {
           {(log.รูปปกหน้า || log.รูปปกหลัง) && (
             <div className="flex gap-1 shrink-0">
               {log.รูปปกหน้า && (
-                <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
+                <ZoomableImage src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
               )}
               {log.รูปปกหลัง && (
-                <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
+                <ZoomableImage src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
               )}
             </div>
           )}
