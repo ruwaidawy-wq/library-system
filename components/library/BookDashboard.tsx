@@ -72,7 +72,7 @@ export default function BookDashboard() {
               { label: "หนังสือทั้งหมด", value: total, color: "#1e3a5f", icon: <BookOpen size={18} /> },
               { label: "ว่างอยู่", value: available, color: "#15803d", icon: <CheckCircle size={18} /> },
               { label: "ถูกยืม/รอยืม", value: borrowed, color: "#1d4ed8", icon: <Clock3 size={18} /> },
-              { label: "ค้างคืน", value: overdue, color: "#b91c1c", icon: <AlertTriangle size={18} /> },
+              { label: "เกินกำหนด", value: overdue, color: "#b91c1c", icon: <AlertTriangle size={18} /> },
             ].map((s) => (
               <div key={s.label} className="rounded-xl border border-slate-100 p-3">
                 <div className="flex items-center gap-1.5 mb-1" style={{ color: s.color }}>
