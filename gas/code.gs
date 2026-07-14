@@ -104,7 +104,9 @@ function getSheet(name) {
 
 function sheetToJSON(sheet) {
   const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  // ตัดช่องว่างหัว-ท้ายชื่อคอลัมน์ออก เพราะเซลล์หัวตารางบางอันมีช่องว่างแฝงอยู่
+  // (เช่น "ID " แทนที่จะเป็น "ID") ทำให้ชื่อ key ไม่ตรงกับที่โค้ดฝั่งเว็บคาดหวัง
+  const headers = data[0].map(h => String(h).trim());
   return data.slice(1).map(row => {
     const obj = {};
     headers.forEach((h, i) => (obj[h] = row[i]));
