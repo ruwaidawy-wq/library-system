@@ -110,15 +110,44 @@ export default function BorrowForm() {
     }
   }
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") {
+  function compressImage(file: File, maxDim = 1200, quality = 0.7): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new Image();
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) { reject(new Error("no canvas context")); return; }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        };
+        img.onerror = reject;
+        img.src = reader.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (side === "front") setFrontPhoto(reader.result as string);
-      else setBackPhoto(reader.result as string);
-    };
-    reader.readAsDataURL(file);
+    const compressed = await compressImage(file);
+    if (side === "front") setFrontPhoto(compressed);
+    else setBackPhoto(compressed);
   }
 
   async function handleSearchBook() {
