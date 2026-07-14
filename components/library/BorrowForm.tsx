@@ -171,6 +171,8 @@ export default function BorrowForm() {
           teacherName: selectedTeacher,
           bookId: selectedBook,
           dueDate,
+          frontPhoto,
+          backPhoto,
         }),
       });
       const data = await res.json();

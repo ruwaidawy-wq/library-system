@@ -46,6 +46,8 @@ export type BorrowLog = {
   สถานะ: string;
   ค่าปรับ: number;
   สถานะชำระ?: string;
+  รูปปกหน้า?: string;
+  รูปปกหลัง?: string;
 };
 
 export type CheckIn = {
@@ -95,7 +97,7 @@ export const libraryApi = {
       action: "checkOverdue", teacherName,
     }),
 
-  borrowBook: (data: { teacherName: string; bookId: string; dueDate: string }) =>
+  borrowBook: (data: { teacherName: string; bookId: string; dueDate: string; frontPhoto?: string; backPhoto?: string }) =>
     gasRequest<{ borrowId: string }>({ action: "borrowBook", ...data }),
 
 returnBook: (data: {

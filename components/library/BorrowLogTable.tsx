@@ -57,13 +57,25 @@ export default function BorrowLogTable() {
               <div key={log.ID}
                 className={`border rounded-xl p-4 ${isOverdue ? "border-red-300 bg-red-50" : "border-slate-100"}`}>
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
-                    <p className="text-sm text-slate-500">รหัส: {log.รหัสหนังสือ}</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      ยืม: {new Date(log.วันยืม).toLocaleDateString("th-TH")} |{" "}
-                      กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
-                    </p>
+                  <div className="flex-1 flex gap-3">
+                    {(log.รูปปกหน้า || log.รูปปกหลัง) && (
+                      <div className="flex gap-1 shrink-0">
+                        {log.รูปปกหน้า && (
+                          <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
+                        )}
+                        {log.รูปปกหลัง && (
+                          <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
+                        )}
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
+                      <p className="text-sm text-slate-500">รหัส: {log.รหัสหนังสือ}</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        ยืม: {new Date(log.วันยืม).toLocaleDateString("th-TH")} |{" "}
+                        กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-col items-end gap-1.5 ml-2">
                     <span className="text-xs px-2 py-1 rounded-full font-medium"

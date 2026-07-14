@@ -118,6 +118,18 @@ function generateID(prefix) {
   return prefix + "_" + new Date().getTime();
 }
 
+// คืนเลขคอลัมน์ (1-indexed) ของหัวตารางชื่อ headerName ในชีต ถ้ายังไม่มีคอลัมน์นี้จะสร้างเพิ่มให้อัตโนมัติ
+function getOrCreateColumn(sheet, headerName) {
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
+  let idx = headers.indexOf(headerName);
+  if (idx === -1) {
+    const lastCol = headers.length + 1;
+    sheet.getRange(1, lastCol).setValue(headerName);
+    idx = lastCol - 1;
+  }
+  return idx + 1;
+}
+
 // ============================================================
 // IMAGE UPLOAD (เก็บรูปไว้ใน Google Drive แทนการฝัง base64 ลงชีต
 // เพราะ Google Sheets จำกัดความยาวข้อความต่อเซลล์ไว้ที่ 50,000 ตัวอักษร
@@ -182,7 +194,7 @@ function checkOverdue(teacherName) {
 }
 
 function borrowBook(data) {
-  const { teacherName, bookId, dueDate } = data;
+  const { teacherName, bookId, dueDate, frontPhoto, backPhoto } = data;
   if (!teacherName || !bookId || !dueDate)
     return { success: false, error: "ข้อมูลไม่ครบ" };
 
@@ -202,6 +214,16 @@ const returnDate = dueDate ? new Date(dueDate) : new Date(today.getTime() + 7 * 
 logSheet.appendRow([
   id, teacherName, bookId, today, returnDate, "", "รอยืม", 0
 ]);
+
+  // เก็บภาพปกหนังสือที่ครูแนบมา (แยกเขียนเป็นคอลัมน์ต่างหาก ไม่พึ่ง appendRow
+  // เพราะบางแถวอาจมีคอลัมน์ "สถานะชำระ" ถูกแทรกไว้ตำแหน่งต่างกันแล้ว)
+  const rowIndex = logSheet.getLastRow();
+  if (frontPhoto) {
+    logSheet.getRange(rowIndex, getOrCreateColumn(logSheet, "รูปปกหน้า")).setValue(saveImageToDrive(frontPhoto, "borrow_front"));
+  }
+  if (backPhoto) {
+    logSheet.getRange(rowIndex, getOrCreateColumn(logSheet, "รูปปกหลัง")).setValue(saveImageToDrive(backPhoto, "borrow_back"));
+  }
 
   // อัปเดตสถานะหนังสือเป็น "รอยืม"
   const bookData = bookSheet.getDataRange().getValues();

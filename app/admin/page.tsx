@@ -409,13 +409,25 @@ if (data.success) {
                 {pendingBorrow.map((log) => (
                   <div key={log.ID} className="bg-white rounded-2xl shadow p-5 border-2 border-purple-200">
                     <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
-                        <p className="text-sm text-slate-500">รหัสหนังสือ: <strong>{log.รหัสหนังสือ}</strong></p>
-                        <p className="text-xs text-slate-400 mt-1">
-                          วันยืม: {new Date(log.วันยืม).toLocaleDateString("th-TH")} |{" "}
-                          กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
-                        </p>
+                      <div className="flex gap-3">
+                        {(log.รูปปกหน้า || log.รูปปกหลัง) && (
+                          <div className="flex gap-1 shrink-0">
+                            {log.รูปปกหน้า && (
+                              <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-14 h-14 rounded-lg object-cover" />
+                            )}
+                            {log.รูปปกหลัง && (
+                              <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-14 h-14 rounded-lg object-cover" />
+                            )}
+                          </div>
+                        )}
+                        <div>
+                          <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
+                          <p className="text-sm text-slate-500">รหัสหนังสือ: <strong>{log.รหัสหนังสือ}</strong></p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            วันยืม: {new Date(log.วันยืม).toLocaleDateString("th-TH")} |{" "}
+                            กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
+                          </p>
+                        </div>
                       </div>
                       <span className="text-xs px-2 py-1 rounded-full font-medium"
                         style={{ background: "#f3e8ff", color: "#7c3aed" }}>รอยืม</span>
@@ -452,18 +464,30 @@ if (data.success) {
                   return (
                     <div key={log.ID} className="bg-white rounded-2xl shadow p-5 border-2 border-amber-200">
                       <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
-                          <p className="text-sm text-slate-500">รหัสหนังสือ: <strong>{log.รหัสหนังสือ}</strong></p>
-                          <p className="text-xs text-slate-400 mt-1">
-                            ยืม: {new Date(log.วันยืม).toLocaleDateString("th-TH")} |{" "}
-                            กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
-                          </p>
-                          {overdue && (
-                            <p className="text-xs text-red-600 font-medium mt-1">
-                              ⚠ เกินกำหนด {days} วัน (ค่าปรับอัตโนมัติ: {days * 5} บาท)
-                            </p>
+                        <div className="flex gap-3">
+                          {(log.รูปปกหน้า || log.รูปปกหลัง) && (
+                            <div className="flex gap-1 shrink-0">
+                              {log.รูปปกหน้า && (
+                                <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-14 h-14 rounded-lg object-cover" />
+                              )}
+                              {log.รูปปกหลัง && (
+                                <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-14 h-14 rounded-lg object-cover" />
+                              )}
+                            </div>
                           )}
+                          <div>
+                            <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
+                            <p className="text-sm text-slate-500">รหัสหนังสือ: <strong>{log.รหัสหนังสือ}</strong></p>
+                            <p className="text-xs text-slate-400 mt-1">
+                              ยืม: {new Date(log.วันยืม).toLocaleDateString("th-TH")} |{" "}
+                              กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
+                            </p>
+                            {overdue && (
+                              <p className="text-xs text-red-600 font-medium mt-1">
+                                ⚠ เกินกำหนด {days} วัน (ค่าปรับอัตโนมัติ: {days * 5} บาท)
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <span className="text-xs px-2 py-1 rounded-full font-medium"
                           style={{ background: "#fef3c7", color: "#92400e" }}>รอคืน</span>
@@ -528,13 +552,25 @@ if (data.success) {
                   return (
                     <div key={log.ID} className={`bg-white rounded-2xl shadow p-4 border ${overdue ? "border-red-200" : "border-transparent"}`}>
                       <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
-                          <p className="text-sm text-slate-500">รหัส: {log.รหัสหนังสือ}</p>
-                          <p className="text-xs text-slate-400">
-                            กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
-                            {overdue && <span className="text-red-500 ml-2">⚠ เกินกำหนด!</span>}
-                          </p>
+                        <div className="flex gap-3">
+                          {(log.รูปปกหน้า || log.รูปปกหลัง) && (
+                            <div className="flex gap-1 shrink-0">
+                              {log.รูปปกหน้า && (
+                                <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
+                              )}
+                              {log.รูปปกหลัง && (
+                                <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
+                              )}
+                            </div>
+                          )}
+                          <div>
+                            <p className="font-semibold text-slate-800">{log.ชื่อผู้ยืม}</p>
+                            <p className="text-sm text-slate-500">รหัส: {log.รหัสหนังสือ}</p>
+                            <p className="text-xs text-slate-400">
+                              กำหนดคืน: {new Date(log.กำหนดคืน).toLocaleDateString("th-TH")}
+                              {overdue && <span className="text-red-500 ml-2">⚠ เกินกำหนด!</span>}
+                            </p>
+                          </div>
                         </div>
                         <span className="text-xs px-2 py-1 rounded-full font-medium"
                           style={{ background: c.bg, color: c.text }}>{log.สถานะ}</span>
@@ -561,14 +597,26 @@ if (data.success) {
   return (
     <div key={log.ID} className="bg-white rounded-2xl shadow p-4">
       <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <p className="font-medium text-slate-800">{log.ชื่อผู้ยืม}</p>
-          <p className="text-xs text-slate-400">รหัส: {log.รหัสหนังสือ}</p>
-          {log.วันคืนจริง && (
-            <p className="text-xs text-slate-400">
-              คืนวันที่: {new Date(log.วันคืนจริง).toLocaleDateString("th-TH")}
-            </p>
+        <div className="flex-1 flex gap-3">
+          {(log.รูปปกหน้า || log.รูปปกหลัง) && (
+            <div className="flex gap-1 shrink-0">
+              {log.รูปปกหน้า && (
+                <img src={log.รูปปกหน้า} alt="ปกหน้า" className="w-12 h-12 rounded-lg object-cover" />
+              )}
+              {log.รูปปกหลัง && (
+                <img src={log.รูปปกหลัง} alt="ปกหลัง" className="w-12 h-12 rounded-lg object-cover" />
+              )}
+            </div>
           )}
+          <div>
+            <p className="font-medium text-slate-800">{log.ชื่อผู้ยืม}</p>
+            <p className="text-xs text-slate-400">รหัส: {log.รหัสหนังสือ}</p>
+            {log.วันคืนจริง && (
+              <p className="text-xs text-slate-400">
+                คืนวันที่: {new Date(log.วันคืนจริง).toLocaleDateString("th-TH")}
+              </p>
+            )}
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1.5 ml-2">
           <span className="text-xs px-2 py-1 rounded-full font-medium"
