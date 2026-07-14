@@ -24,6 +24,9 @@ export default function RootLayout({
       <body className={`${sarabun.variable} font-sarabun antialiased`}>
         <Navbar />
         <main className="min-h-screen">{children}</main>
+        <footer className="no-print text-center text-xs text-slate-400 py-4">
+          พัฒนาโดย นางสาวรูวัยดา หวังยี ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา
+        </footer>
       </body>
     </html>
   );
