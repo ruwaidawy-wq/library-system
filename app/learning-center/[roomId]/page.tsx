@@ -123,7 +123,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       teacherName: ciTeacher,
       studentName: ciStudent,
       received: ciReceived,
-      imageUrl: ciPhotos.join(","),
+      imageUrl: ciPhotos.join("|||"),
       corner: ciCorner,
     });
     setCiSubmitting(false);
@@ -168,7 +168,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         learningSource: roomName,
         activityDetail: actDetail,
         knowledge: actKnowledge,
-        imageUrl: actPhotos.join(","),
+        imageUrl: actPhotos.join("|||"),
         signature: actSignature || "",
         recorder: actRecorder,
         position: actPosition,

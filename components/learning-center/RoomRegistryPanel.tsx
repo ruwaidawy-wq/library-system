@@ -86,7 +86,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
       equipment: formEquip,
       responsible: formResponsible,
       established: formEstablished,
-      imageUrl: formPhotos.join(","),
+      imageUrl: formPhotos.join("|||"),
     };
     const isNewEntry = !editingId;
     if (editingId) {

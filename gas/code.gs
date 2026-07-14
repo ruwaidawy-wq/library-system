@@ -146,8 +146,10 @@ function saveImageToDrive(dataUrl, prefix) {
 
 function processImageField(value, prefix) {
   if (!value) return "";
+  // ใช้ "|||" เป็นตัวคั่นแทน "," เพราะ data URL แต่ละอัน (data:image/png;base64,XXXX)
+  // มี "," อยู่ในตัวมันเองอยู่แล้ว การ split ด้วย "," จะตัด data URL ขาดเป็นสองท่อนโดยไม่ตั้งใจ
   return String(value)
-    .split(",")
+    .split("|||")
     .filter(Boolean)
     .map(item => saveImageToDrive(item.trim(), prefix))
     .join(",");
