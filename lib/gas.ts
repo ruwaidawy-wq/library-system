@@ -27,6 +27,7 @@ async function gasRequest<T>(params: Record<string, unknown>): Promise<ApiRespon
 export type Teacher = {
   "ชื่อ-นามสกุล": string;
   ตำแหน่ง: string;
+  อีเมล?: string;
 };
 
 export type Book = {

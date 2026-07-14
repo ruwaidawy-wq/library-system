@@ -1,6 +1,7 @@
 "use client";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { AlertCircle, Search, BookOpen, Calendar, CheckCircle, Loader2, Camera, X } from "lucide-react";
+import { libraryApi, Teacher } from "@/lib/gas";
 
 const today = new Date().toISOString().split("T")[0];
 
@@ -88,8 +89,17 @@ export default function BorrowForm() {
   const [backPhoto, setBackPhoto] = useState<string | null>(null);
   const frontInputRef = useRef<HTMLInputElement>(null);
   const backInputRef = useRef<HTMLInputElement>(null);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
 
-  const filteredTeachers = TEACHER_LIST.filter((t) => t.includes(teacherQuery));
+  useEffect(() => {
+    libraryApi.getTeachers().then((res) => {
+      if (res.success && res.data) setTeachers(res.data);
+    });
+  }, []);
+
+  const teacherNames = teachers.length > 0 ? teachers.map((t) => t["ชื่อ-นามสกุล"]) : TEACHER_LIST;
+  const filteredTeachers = teacherNames.filter((t) => t.includes(teacherQuery));
+  const selectedTeacherEmail = teachers.find((t) => t["ชื่อ-นามสกุล"] === selectedTeacher)?.["อีเมล"];
 
   function handleBorrowDateChange(val: string) {
     setBorrowDate(val);
@@ -303,6 +313,11 @@ export default function BorrowForm() {
               </button>
             ))}
           </div>
+        )}
+        {selectedTeacher && selectedTeacherEmail && (
+          <p className="mt-1.5 text-xs text-slate-400">
+            📧 จะส่งอีเมลแจ้งเตือนไปที่: <span className="font-medium text-slate-500">{selectedTeacherEmail}</span>
+          </p>
         )}
       </div>
 
