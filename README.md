@@ -70,6 +70,7 @@ library-system/
    - Execute as: **Me**
    - Who has access: **Anyone**
 6. Copy **Web App URL**
+7. รูปภาพ/ลายเซ็นที่อัปโหลด (เช็คอิน, บันทึกกิจกรรม, ทะเบียนแหล่งเรียนรู้) จะถูกอัปโหลดขึ้น Google Drive โฟลเดอร์ `LibrarySystemUploads` โดยอัตโนมัติ (แทนการฝัง base64 ลงชีตโดยตรง เพราะ Sheets จำกัดความยาวต่อเซลล์ไว้ที่ 50,000 ตัวอักษร) — ตอน Deploy ครั้งแรกหรือหลังแก้โค้ดที่แตะ `DriveApp` ระบบจะขอ authorize สิทธิ์ Drive เพิ่ม ให้กด **Allow**
 
 ### 3. ตั้งค่า Environment Variable
 

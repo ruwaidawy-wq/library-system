@@ -117,6 +117,41 @@ function generateID(prefix) {
 }
 
 // ============================================================
+// IMAGE UPLOAD (เก็บรูปไว้ใน Google Drive แทนการฝัง base64 ลงชีต
+// เพราะ Google Sheets จำกัดความยาวข้อความต่อเซลล์ไว้ที่ 50,000 ตัวอักษร
+// ซึ่งรูปแบบ base64 มักยาวเกินนั้น ทำให้ค่าที่บันทึกถูกตัดจนภาพเสีย)
+// ============================================================
+
+const DRIVE_UPLOAD_FOLDER_NAME = "LibrarySystemUploads";
+
+function getUploadFolder() {
+  const folders = DriveApp.getFoldersByName(DRIVE_UPLOAD_FOLDER_NAME);
+  if (folders.hasNext()) return folders.next();
+  return DriveApp.createFolder(DRIVE_UPLOAD_FOLDER_NAME);
+}
+
+function saveImageToDrive(dataUrl, prefix) {
+  const match = /^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) return dataUrl; // ไม่ใช่ base64 data URL (เช่น URL เดิมที่อัปโหลดไปแล้ว) ให้คงค่าเดิม
+
+  const mimeType = match[1];
+  const bytes = Utilities.base64Decode(match[2]);
+  const blob = Utilities.newBlob(bytes, mimeType, prefix + "_" + new Date().getTime());
+  const file = getUploadFolder().createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  return "https://drive.google.com/uc?export=view&id=" + file.getId();
+}
+
+function processImageField(value, prefix) {
+  if (!value) return "";
+  return String(value)
+    .split(",")
+    .filter(Boolean)
+    .map(item => saveImageToDrive(item.trim(), prefix))
+    .join(",");
+}
+
+// ============================================================
 // LIBRARY FUNCTIONS
 // ============================================================
 
@@ -346,7 +381,7 @@ function checkIn(data) {
     return { success: false, error: "ข้อมูลไม่ครบ" };
   const sheet = getSheet(SHEETS.CHECKIN_LOG);
   const timestamp = new Date();
-  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp, imageUrl || "", corner || ""]);
+  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp, processImageField(imageUrl, "checkin"), corner || ""]);
   return { success: true, timestamp: timestamp.toISOString() };
 }
 
@@ -377,8 +412,8 @@ function addActivity(data) {
     id, date || timestamp.toISOString(),
     roomNumber, students || "", teachers || "",
     learningSource || "", activityDetail || "",
-    knowledge || "", imageUrl || "",
-    signature || "", recorder, position || "",
+    knowledge || "", processImageField(imageUrl, "activity"),
+    processImageField(signature, "signature"), recorder, position || "",
     "รออนุมัติ"
   ]);
 
@@ -504,7 +539,7 @@ function addRoomRegistryEntry(data) {
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const id = generateID("REG");
   sheet.appendRow([
-    id, roomId, name || "", type || "", description || "", equipment || "", responsible || "", established || "", imageUrl || "",
+    id, roomId, name || "", type || "", description || "", equipment || "", responsible || "", established || "", processImageField(imageUrl, "registry"),
     status || "รออนุมัติ"
   ]);
   return { success: true, id };
@@ -545,7 +580,7 @@ function updateRoomRegistryEntry(data) {
       sheet.getRange(rowIndex, headers.indexOf("อุปกรณ์/สื่อ") + 1).setValue(equipment || "");
       sheet.getRange(rowIndex, headers.indexOf("ผู้รับผิดชอบ") + 1).setValue(responsible || "");
       sheet.getRange(rowIndex, headers.indexOf("วันที่จัดตั้ง") + 1).setValue(established || "");
-      sheet.getRange(rowIndex, headers.indexOf("รูปภาพURL") + 1).setValue(imageUrl || "");
+      sheet.getRange(rowIndex, headers.indexOf("รูปภาพURL") + 1).setValue(processImageField(imageUrl, "registry"));
       return { success: true };
     }
   }
