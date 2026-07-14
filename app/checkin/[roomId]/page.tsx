@@ -209,6 +209,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       setActDetail("");
       setActKnowledge("");
       setActPhotos([]);
+      setActRecorder("");
+      setActPosition("");
+      setActSignature(null);
       setActDate(new Date().toISOString().split("T")[0]);
       setTimeout(() => setActSuccess(false), 4000);
       activityApi.getActivitiesByRoom(roomName).then((act) => {
