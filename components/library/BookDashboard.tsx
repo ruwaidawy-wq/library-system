@@ -31,7 +31,7 @@ export default function BookDashboard() {
   });
 
   const total = books.length;
-  const available = books.filter((b) => b["สถานะ"] === "พร้อมให้ยืม").length;
+  const available = books.filter((b) => b["สถานะ"] === "ว่างอยู่").length;
   const borrowed = books.filter((b) => activeLogByBook.has(b.ID)).length;
   const overdue = books.filter((b) => {
     const log = activeLogByBook.get(b.ID);
@@ -43,7 +43,7 @@ export default function BookDashboard() {
   );
 
   const statusColor = (status: string) => {
-    if (status === "พร้อมให้ยืม") return { bg: "#dcfce7", text: "#15803d" };
+    if (status === "ว่างอยู่") return { bg: "#dcfce7", text: "#15803d" };
     if (status === "รอยืม") return { bg: "#f3e8ff", text: "#7c3aed" };
     if (status === "ชำรุด") return { bg: "#fee2e2", text: "#b91c1c" };
     return { bg: "#dbeafe", text: "#1d4ed8" }; // ถูกยืม

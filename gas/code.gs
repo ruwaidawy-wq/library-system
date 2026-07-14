@@ -188,7 +188,7 @@ function borrowBook(data) {
   const books = sheetToJSON(bookSheet);
   const book = books.find(b => b["ID"] === bookId);
   if (!book) return { success: false, error: "ไม่พบหนังสือ" };
-  if (book["สถานะ"] !== "พร้อมให้ยืม")
+  if (book["สถานะ"] !== "ว่างอยู่")
     return { success: false, error: "หนังสือเล่มนี้ไม่พร้อมให้ยืม" };
 
   const logSheet = getSheet(SHEETS.BORROW_LOG);
@@ -337,7 +337,7 @@ if (todayDate > dueDateOnly) {
     for (let i = 1; i < bookData.length; i++) {
       if (bookData[i][0] === bookId) {
         bookSheet.getRange(i + 1, 3).setValue(
-          returnStatus === "damaged" ? "ชำรุด" : "พร้อมให้ยืม"
+          returnStatus === "damaged" ? "ชำรุด" : "ว่างอยู่"
         );
         break;
       }
@@ -507,7 +507,7 @@ function searchBook(query) {
     String(b["ชื่อหนังสือ"]).includes(query)
   );
   if (!found) return { success: false, error: "ไม่พบหนังสือรหัส/ชื่อ: " + query };
-  if (found["สถานะ"] !== "พร้อมให้ยืม") {
+  if (found["สถานะ"] !== "ว่างอยู่") {
     return {
       success: false,
       error: `หนังสือ "${found["ชื่อหนังสือ"]}" ไม่พร้อมให้ยืม (สถานะ: ${found["สถานะ"]})`
