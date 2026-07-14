@@ -246,12 +246,19 @@ function approveBorrow(data) {
   const bookId = rowData[bookIdIdx];
   const bookSheet = getSheet(SHEETS.BOOKS);
   const bookData = bookSheet.getDataRange().getValues();
+  let bookName = bookId;
   for (let i = 1; i < bookData.length; i++) {
     if (bookData[i][0] === bookId) {
       bookSheet.getRange(i + 1, 3).setValue("ถูกยืม");
+      bookName = bookData[i][1];
       break;
     }
   }
+
+  const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
+  const dueDate = rowData[headers.indexOf("กำหนดคืน")];
+  sendEmailSafe(getTeacherEmail(teacherName), "ยืนยันการยืมหนังสือ: " + bookName,
+    `เรียนคุณครู ${teacherName}\n\nระบบห้องสมุดยืนยันการยืมหนังสือ "${bookName}" เรียบร้อยแล้ว\nกำหนดคืน: ${new Date(dueDate).toLocaleDateString("th-TH")}\n\nกรุณาคืนหนังสือภายในกำหนดเพื่อหลีกเลี่ยงค่าปรับ`);
 
   return { success: true };
 }
@@ -345,6 +352,11 @@ if (todayDate > dueDateOnly) {
       }
     }
   }
+
+  const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
+  const fineText = fine > 0 ? `\nค่าปรับ: ${fine} บาท` : "";
+  sendEmailSafe(getTeacherEmail(teacherName), "ยืนยันการคืนหนังสือ: " + getBookName(bookId),
+    `เรียนคุณครู ${teacherName}\n\nระบบห้องสมุดบันทึกการคืนหนังสือ "${getBookName(bookId)}" เรียบร้อยแล้ว\nสถานะ: ${newStatus}${fineText}\n\nขอบคุณค่ะ`);
 
   return { success: true, fine };
 }
@@ -500,6 +512,76 @@ function sendLineNotify(message) {
   } catch (e) {
     Logger.log("Line Notify error: " + e.message);
   }
+}
+
+// ============================================================
+// EMAIL NOTIFICATIONS (ยืม/คืนหนังสือ + แจ้งเตือนกำหนดคืนรายวัน)
+// ต้องมีคอลัมน์ "อีเมล" ในชีต Teachers ถึงจะส่งอีเมลได้
+// ============================================================
+
+function getTeacherEmail(teacherName) {
+  const teachers = sheetToJSON(getSheet(SHEETS.TEACHERS));
+  const teacher = teachers.find(t => t["ชื่อ-นามสกุล"] === teacherName);
+  return teacher ? String(teacher["อีเมล"] || "").trim() : "";
+}
+
+function getBookName(bookId) {
+  const books = sheetToJSON(getSheet(SHEETS.BOOKS));
+  const book = books.find(b => b["ID"] === bookId);
+  return book ? book["ชื่อหนังสือ"] : bookId;
+}
+
+function sendEmailSafe(to, subject, body) {
+  if (!to) return;
+  try {
+    MailApp.sendEmail(to, subject, body);
+  } catch (e) {
+    Logger.log("Email error: " + e.message);
+  }
+}
+
+// สแกนรายการที่ "ยืมอยู่" ทุกวัน แล้วอีเมลแจ้งครูที่ใกล้ครบกำหนด (วันนี้/พรุ่งนี้) หรือเกินกำหนดแล้ว
+// รันฟังก์ชัน createDailyReminderTrigger() ครั้งเดียวจาก Apps Script editor เพื่อตั้งเวลาอัตโนมัติ
+function sendDueDateReminders() {
+  const logs = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
+  const today = new Date();
+  const todayOnly = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  const byTeacher = {};
+  logs.forEach(log => {
+    if (log["สถานะ"] !== "ยืมอยู่") return;
+    const dueDate = new Date(log["กำหนดคืน"]);
+    const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+    const diffDays = Math.round((dueDateOnly - todayOnly) / (1000 * 60 * 60 * 24));
+    if (diffDays > 1) return; // แจ้งเฉพาะใกล้ครบกำหนด (วันนี้/พรุ่งนี้) หรือเกินกำหนดแล้ว
+
+    const teacherName = log["ชื่อผู้ยืม"];
+    const email = getTeacherEmail(teacherName);
+    if (!email) return;
+
+    if (!byTeacher[email]) byTeacher[email] = { name: teacherName, overdue: [], dueSoon: [] };
+    const line = `- ${getBookName(log["รหัสหนังสือ"])} (กำหนดคืน ${dueDateOnly.toLocaleDateString("th-TH")})`;
+    if (diffDays < 0) byTeacher[email].overdue.push(line);
+    else byTeacher[email].dueSoon.push(line);
+  });
+
+  Object.keys(byTeacher).forEach(email => {
+    const info = byTeacher[email];
+    let body = `เรียนคุณครู ${info.name}\n\n`;
+    if (info.overdue.length) body += `หนังสือที่เกินกำหนดคืนแล้ว:\n${info.overdue.join("\n")}\n\n`;
+    if (info.dueSoon.length) body += `หนังสือที่ใกล้ครบกำหนดคืน:\n${info.dueSoon.join("\n")}\n\n`;
+    body += "กรุณาคืนหนังสือที่ห้องสมุดค่ะ";
+    sendEmailSafe(email, "แจ้งเตือนกำหนดคืนหนังสือ", body);
+  });
+}
+
+// รันฟังก์ชันนี้เพียงครั้งเดียวจาก Apps Script editor (เลือกฟังก์ชันนี้แล้วกด Run)
+// เพื่อตั้งเวลาให้ sendDueDateReminders() ทำงานอัตโนมัติทุกวันตอน 08:00 น.
+function createDailyReminderTrigger() {
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === "sendDueDateReminders") ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger("sendDueDateReminders").timeBased().everyDays(1).atHour(8).create();
 }
 function searchBook(query) {
   if (!query) return { success: false, error: "ต้องระบุคำค้นหา" };
