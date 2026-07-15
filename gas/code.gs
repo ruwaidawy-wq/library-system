@@ -244,7 +244,7 @@ function approveBorrow(data) {
 
   const sheet = getSheet(SHEETS.BORROW_LOG);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
 
   const idIdx     = headers.indexOf("ID");
   const statusIdx = headers.indexOf("สถานะ");
@@ -291,7 +291,7 @@ function returnBook(data) {
 
   const sheet = getSheet(SHEETS.BORROW_LOG);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
 
   const idIdx        = headers.indexOf("ID");
   const dueDateIdx   = headers.indexOf("กำหนดคืน");
@@ -391,7 +391,7 @@ function updatePaymentStatus(data) {
   const { borrowId, paymentStatus } = data;
   const sheet = getSheet(SHEETS.BORROW_LOG);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
   const idIdx = headers.indexOf("ID");
 
   // เพิ่ม column "สถานะชำระ" ถ้ายังไม่มี
@@ -471,7 +471,7 @@ function updateActivityStatus(data) {
   const { id, status } = data;
   const sheet = getSheet(SHEETS.ACTIVITIES);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
   const idIdx = headers.indexOf("ID");
   const statusIdx = headers.indexOf("สถานะ");
 
@@ -488,7 +488,7 @@ function deleteActivity(data) {
   const { id } = data;
   const sheet = getSheet(SHEETS.ACTIVITIES);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
   const idIdx = headers.indexOf("ID");
 
   for (let i = 1; i < allData.length; i++) {
@@ -659,7 +659,7 @@ function approveRoomRegistryEntry(id) {
   if (!id) return { success: false, error: "ต้องระบุ ID" };
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
   const idIdx = headers.indexOf("ID");
   const statusIdx = headers.indexOf("สถานะ");
 
@@ -678,7 +678,7 @@ function updateRoomRegistryEntry(data) {
 
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
   const idIdx = headers.indexOf("ID");
 
   for (let i = 1; i < allData.length; i++) {
@@ -701,7 +701,7 @@ function deleteRoomRegistryEntry(id) {
   if (!id) return { success: false, error: "ต้องระบุ ID" };
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const allData = sheet.getDataRange().getValues();
-  const headers = allData[0];
+  const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
   const idIdx = headers.indexOf("ID");
 
   for (let i = 1; i < allData.length; i++) {
