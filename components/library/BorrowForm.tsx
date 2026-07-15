@@ -296,6 +296,9 @@ export default function BorrowForm() {
               </div>
             </div>
           </div>
+          <p className="text-xs text-green-700">
+            📧 หลัง Admin อนุมัติคำขอยืมแล้ว ระบบจะส่งอีเมลแจ้งเตือนไปที่อีเมลของท่าน — หากไม่พบในกล่องขาเข้า กรุณาตรวจสอบในโฟลเดอร์จดหมายขยะ (Spam/Junk) ด้วยค่ะ
+          </p>
         </div>
       )}
 
