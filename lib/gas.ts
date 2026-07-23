@@ -76,6 +76,7 @@ export type Activity = {
   ผู้บันทึก: string;
   ตำแหน่ง: string;
   สถานะ: string;
+  การประเมิน?: string;
 };
 
 export type LeaderboardEntry = {
@@ -155,6 +156,7 @@ export const activityApi = {
     signature: string;
     recorder: string;
     position: string;
+    assessments?: string;
   }) => gasRequest<{ id: string }>({ action: "addActivity", ...data }),
 
   getActivities: () =>

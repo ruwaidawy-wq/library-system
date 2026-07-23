@@ -1,14 +1,15 @@
 "use client";
 import { useState, useEffect } from "react";
-import { BookOpen, BookMarked, ClipboardList, ArrowLeft, TrendingUp, AlertCircle, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { BookOpen, BookMarked, ClipboardList, ArrowLeft, TrendingUp, AlertCircle, CheckCircle, Clock, DollarSign, Sparkles } from "lucide-react";
 import Link from "next/link";
 import BorrowForm from "@/components/library/BorrowForm";
 import ReturnForm from "@/components/library/ReturnForm";
 import BorrowLogTable from "@/components/library/BorrowLogTable";
 import BookDashboard from "@/components/library/BookDashboard";
+import LibraryActivityForm from "@/components/library/LibraryActivityForm";
 import { libraryApi, BorrowLog } from "@/lib/gas";
 
-type View = "dashboard" | "borrow" | "return" | "log" | "books";
+type View = "dashboard" | "borrow" | "return" | "log" | "books" | "activity";
 
 export default function LibraryPage() {
   const [view, setView] = useState<View>("dashboard");
@@ -71,6 +72,16 @@ export default function LibraryPage() {
     </div>
   );
 
+  if (view === "activity") return (
+    <div className="max-w-2xl mx-auto px-4 py-8">
+      <button onClick={() => setView("dashboard")}
+        className="no-print flex items-center gap-2 mb-6 text-slate-500 hover:text-slate-700">
+        <ArrowLeft size={18} /> กลับหน้าหลัก
+      </button>
+      <LibraryActivityForm />
+    </div>
+  );
+
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       {/* Header */}
@@ -86,7 +97,7 @@ export default function LibraryPage() {
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
         <button onClick={() => setView("borrow")}
           className="rounded-2xl p-5 text-white flex flex-col items-center gap-2 transition-all hover:shadow-lg hover:-translate-y-1"
           style={{ background: "linear-gradient(135deg, #1e3a5f, #2d5a8e)" }}>
@@ -110,6 +121,12 @@ export default function LibraryPage() {
           style={{ background: "linear-gradient(135deg, #4a5568, #718096)" }}>
           <ClipboardList size={28} />
           <span className="font-semibold text-sm">ประวัติ</span>
+        </button>
+        <button onClick={() => setView("activity")}
+          className="rounded-2xl p-5 text-white flex flex-col items-center gap-2 transition-all hover:shadow-lg hover:-translate-y-1"
+          style={{ background: "linear-gradient(135deg, #b45309, #f59e0b)" }}>
+          <Sparkles size={28} />
+          <span className="font-semibold text-sm">ห้องสมุดมีชีวิต</span>
         </button>
       </div>
 

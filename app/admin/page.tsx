@@ -270,6 +270,43 @@ if (data.success) {
             </td>
           </tr>
         </table>
+        ${(() => {
+          if (!act.การประเมิน) return "";
+          let assessedStudents: { name?: string; grade?: string; scores?: number[]; notes?: string[] }[] = [];
+          try { assessedStudents = JSON.parse(act.การประเมิน); } catch { return ""; }
+          if (!Array.isArray(assessedStudents) || assessedStudents.length === 0) return "";
+          const items = [
+            "แสดงความกระตือรือร้น/สนใจที่จะเข้าห้องสมุด",
+            "เลือกสื่อ/หนังสือที่สนใจด้วยตนเอง",
+            "มีสมาธิในการจดจ่อกับสื่อ/กิจกรรม (อย่างน้อย ๑๐-๑๕ นาที)",
+            "สามารถใช้อุปกรณ์พื้นฐานในห้องสมุดได้ (เช่น เครื่องเล่นสื่อ)",
+            "มีการเก็บสื่อ/อุปกรณ์เข้าที่หลังการใช้งาน",
+          ];
+          return `
+            <div class="divider"></div>
+            <p style="font-weight:700;font-size:13px;">แบบประเมินพฤติกรรมการเรียนรู้ (สำหรับตัวชี้วัดเชิงคุณภาพ ข้อ ๑)</p>
+            ${assessedStudents.map((s) => {
+              const total = (s.scores || []).reduce((a, b) => a + b, 0);
+              const result = total >= 3 ? "ผ่านเกณฑ์" : "ควรได้รับการกระตุ้น";
+              return `
+                <p style="margin:10px 0 4px;font-size:13px;"><b>${s.name || "-"}</b> ${s.grade ? `(${s.grade})` : ""}</p>
+                <table style="font-size:12px;">
+                  <tr><td class="label" style="width:36%">รายการพฤติกรรม</td><td class="label" style="width:12%;text-align:center">มี (๑)</td><td class="label" style="width:14%;text-align:center">ไม่มี (๐)</td><td class="label" style="width:38%">บันทึกเพิ่มเติม</td></tr>
+                  ${items.map((item, i) => `
+                    <tr>
+                      <td>${i + 1}. ${item}</td>
+                      <td style="text-align:center">${s.scores && s.scores[i] === 1 ? "✓" : ""}</td>
+                      <td style="text-align:center">${s.scores && s.scores[i] === 0 ? "✓" : ""}</td>
+                      <td>${(s.notes && s.notes[i]) || ""}</td>
+                    </tr>
+                  `).join("")}
+                  <tr><td class="label" colspan="3" style="text-align:center">รวมคะแนน</td><td class="label">${total} / ${items.length}</td></tr>
+                </table>
+                <p style="font-size:12px;margin:4px 0 0;">ผลการประเมิน: ${result}</p>
+              `;
+            }).join("")}
+          `;
+        })()}
         <div class="footer">พิมพ์วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
       </body>
       </html>

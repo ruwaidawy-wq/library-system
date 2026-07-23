@@ -444,7 +444,7 @@ function getAllRoomsStats() {
 
 function addActivity(data) {
   const { date, roomNumber, students, teachers, learningSource,
-    activityDetail, knowledge, imageUrl, signature, recorder, position } = data;
+    activityDetail, knowledge, imageUrl, signature, recorder, position, assessments } = data;
   const sheet = getSheet(SHEETS.ACTIVITIES);
   const id = generateID("ACT");
   const timestamp = new Date();
@@ -456,6 +456,13 @@ function addActivity(data) {
     processImageField(signature, "signature"), recorder, position || "",
     "รออนุมัติ"
   ]);
+
+  // เก็บผลการประเมินพฤติกรรมนักเรียน (ถ้ามี) ไว้คอลัมน์ต่างหาก เพราะเป็น JSON string
+  // ไม่พึ่ง appendRow เนื่องจากอาจมีคอลัมน์อื่นถูกแทรกไว้ตำแหน่งต่างกันแล้ว
+  if (assessments) {
+    const rowIndex = sheet.getLastRow();
+    sheet.getRange(rowIndex, getOrCreateColumn(sheet, "การประเมิน")).setValue(assessments);
+  }
 
   // แจ้ง Line Notify ไปยัง Admin
   sendLineNotify(`📋 บันทึกกิจกรรมใหม่\nห้อง: ${roomNumber}\nผู้บันทึก: ${recorder} (${position})\nกิจกรรม: ${activityDetail}`);
