@@ -15,7 +15,6 @@ export default function HomePage() {
   <h1 className="font-prompt text-4xl font-bold text-slate-800 mb-3">
     ระบบห้องสมุด & แหล่งเรียนรู้
   </h1>
-  <p className="text-slate-500 text-lg">ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
   <p className="text-slate-400 text-sm mt-1">เลือกโซนที่ต้องการเข้าใช้งาน</p>
 </div>
 
@@ -93,13 +92,6 @@ export default function HomePage() {
           </div>
         </Link>
       </div>
-
-      {/* Footer */}
-      <p className="mt-12 text-slate-400 text-sm text-center animate-fade-in animate-delay-300">
-        ระบบจัดการห้องสมุดและแหล่งเรียนรู้ • โครงการ Learning space for all งานห้องสมุดและแหล่งเรียนรู้ ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา
-        <br />
-        พัฒนาโดย นางสาวรูวัยดา หวังยี
-      </p>
     </div>
   );
 }
