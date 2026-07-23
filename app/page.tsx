@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { BookOpen, GraduationCap, ChevronRight } from "lucide-react";
+import { BookOpen, GraduationCap, ChevronRight, BarChart3 } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -92,6 +92,12 @@ export default function HomePage() {
           </div>
         </Link>
       </div>
+
+      <Link href="/library-stats"
+        className="mt-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 hover:bg-white text-slate-500 hover:text-slate-700 text-sm shadow-sm transition-all animate-fade-in animate-delay-300">
+        <BarChart3 size={16} />
+        สถิติการใช้บริการห้องสมุด
+      </Link>
     </div>
   );
 }

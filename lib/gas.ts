@@ -225,3 +225,39 @@ export const roomApi = {
   deleteRoomRegistryEntry: (id: string) =>
     gasRequest({ action: "deleteRoomRegistryEntry", id }),
 };
+
+// ============================================================
+// LIBRARY STATS (แบบบันทึกสถิติการใช้บริการห้องสมุดรายเดือน)
+// ============================================================
+
+export type LibraryStat = {
+  ID: string;
+  เดือน: string;
+  ปี: string;
+  ครูทั้งหมด: number;
+  ครูที่มาใช้บริการ: number;
+  ผู้เรียนทั้งหมด: number;
+  ผู้เรียนที่มาใช้บริการ: number;
+  หมายเหตุ: string;
+  ผู้บันทึก: string;
+};
+
+export const statsApi = {
+  getLibraryUsageStats: (monthYear: string) =>
+    gasRequest<{ teacherUsed: number; studentUsed: number }>({ action: "getLibraryUsageStats", monthYear }),
+
+  addLibraryStats: (data: {
+    month: string;
+    year: string;
+    staffTotal: number;
+    staffUsed: number;
+    studentTotal: number;
+    studentUsed: number;
+    note?: string;
+    recorder?: string;
+  }) => gasRequest<{ id: string }>({ action: "addLibraryStats", ...data }),
+
+  getLibraryStats: () => gasRequest<LibraryStat[]>({ action: "getLibraryStats" }),
+
+  deleteLibraryStats: (id: string) => gasRequest({ action: "deleteLibraryStats", id }),
+};

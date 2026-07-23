@@ -16,6 +16,7 @@ const SHEETS = {
   CHECKIN_LOG: "CheckIn_Log",
   ACTIVITIES: "Activities",
   ROOM_REGISTRY: "Room_Registry",
+  LIBRARY_STATS: "Library_Stats",
 };
 
 function doGet(e) {
@@ -77,6 +78,10 @@ case "addRoomRegistryEntry":   result = addRoomRegistryEntry(data); break;
 case "updateRoomRegistryEntry":result = updateRoomRegistryEntry(data); break;
 case "deleteRoomRegistryEntry":result = deleteRoomRegistryEntry(data.id); break;
 case "approveRoomRegistryEntry":result = approveRoomRegistryEntry(data.id); break;
+case "getLibraryUsageStats":   result = getLibraryUsageStats(data.monthYear); break;
+case "addLibraryStats":        result = addLibraryStats(data); break;
+case "getLibraryStats":        result = getLibraryStats(); break;
+case "deleteLibraryStats":     result = deleteLibraryStats(data.id); break;
       default: result = { success: false, error: "Unknown action: " + action };
 
     }
@@ -709,6 +714,86 @@ function deleteRoomRegistryEntry(id) {
   const sheet = getSheet(SHEETS.ROOM_REGISTRY);
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0].map(h => String(h).trim()); // ตัดช่องว่างแฝงในหัวตาราง (พบปัญหานี้มาแล้วกับคอลัมน์ "ID " ในชีต Books)
+  const idIdx = headers.indexOf("ID");
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      sheet.deleteRow(i + 1);
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
+}
+
+// ============================================================
+// LIBRARY STATS (แบบบันทึกสถิติการใช้บริการห้องสมุด รายเดือน)
+// ============================================================
+
+// นับจำนวนครู/บุคลากร และผู้เรียน ที่มาใช้บริการห้องสมุดในเดือนที่ระบุ (ไม่ซ้ำคน)
+// โดยรวมจากผู้ยืมหนังสือ (Borrow_Log) และผู้ร่วมกิจกรรมห้องสมุดมีชีวิต (Activities)
+// monthYear รูปแบบ "YYYY-MM" (ปี ค.ศ. ตามที่ input type="month" ของ HTML ส่งมา)
+function getLibraryUsageStats(monthYear) {
+  if (!monthYear) return { success: false, error: "ต้องระบุเดือน" };
+  const [yearStr, monthStr] = monthYear.split("-");
+  const targetYear = Number(yearStr);
+  const targetMonth = Number(monthStr); // 1-12
+
+  const inTargetMonth = (dateValue) => {
+    if (!dateValue) return false;
+    const d = new Date(dateValue);
+    return d.getFullYear() === targetYear && d.getMonth() + 1 === targetMonth;
+  };
+
+  const teacherSet = {};
+  const studentSet = {};
+
+  const borrowLogs = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
+  borrowLogs.forEach(row => {
+    if (inTargetMonth(row["วันยืม"]) && row["ชื่อผู้ยืม"]) {
+      teacherSet[String(row["ชื่อผู้ยืม"]).trim()] = true;
+    }
+  });
+
+  const activities = sheetToJSON(getSheet(SHEETS.ACTIVITIES));
+  activities.forEach(row => {
+    if (String(row["ห้องเรียน"]) !== "งานห้องสมุด") return;
+    if (!inTargetMonth(row["วันที่"])) return;
+    String(row["รายชื่อครู"] || "").split("\n").map(s => s.trim()).filter(Boolean).forEach(n => { teacherSet[n] = true; });
+    String(row["รายชื่อนักเรียน"] || "").split("\n").map(s => s.trim()).filter(Boolean).forEach(n => { studentSet[n] = true; });
+  });
+
+  return {
+    success: true,
+    data: {
+      teacherUsed: Object.keys(teacherSet).length,
+      studentUsed: Object.keys(studentSet).length,
+    }
+  };
+}
+
+function addLibraryStats(data) {
+  const { month, year, staffTotal, staffUsed, studentTotal, studentUsed, note, recorder } = data;
+  if (!month || !year) return { success: false, error: "ต้องระบุเดือนและปี" };
+  const sheet = getSheet(SHEETS.LIBRARY_STATS);
+  const id = generateID("STAT");
+  sheet.appendRow([
+    id, month, year,
+    Number(staffTotal) || 0, Number(staffUsed) || 0,
+    Number(studentTotal) || 0, Number(studentUsed) || 0,
+    note || "", recorder || ""
+  ]);
+  return { success: true, id };
+}
+
+function getLibraryStats() {
+  return { success: true, data: sheetToJSON(getSheet(SHEETS.LIBRARY_STATS)) };
+}
+
+function deleteLibraryStats(id) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.LIBRARY_STATS);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).trim());
   const idIdx = headers.indexOf("ID");
 
   for (let i = 1; i < allData.length; i++) {
