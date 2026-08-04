@@ -1,12 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, Calendar, Image, Printer, Pen, LogIn, ImagePlus } from "lucide-react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, LogIn, ImagePlus } from "lucide-react";
 import Link from "next/link";
-import { learningApi, roomApi, activityApi, CheckIn, RoomRegistryEntry, Activity } from "@/lib/gas";
-import SignaturePad from "@/components/SignaturePad";
+import { learningApi, roomApi, CheckIn, RoomRegistryEntry } from "@/lib/gas";
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
-
-const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
+import { compressImage } from "@/lib/imageUtils";
 
 const ALL_ROOMS: Record<string, string> = {
   "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
@@ -41,7 +39,7 @@ const ALL_ROOMS: Record<string, string> = {
   "room-24": "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)",
 };
 
-type Tab = "info" | "checkin" | "activity";
+type Tab = "info" | "checkin";
 
 export default function RoomPage({ params }: { params: { roomId: string } }) {
   const roomId = params.roomId;
@@ -68,23 +66,6 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [registryEntries, setRegistryEntries] = useState<RoomRegistryEntry[]>([]);
   const ciPhotoInputRef = useRef<HTMLInputElement>(null);
 
-  // Activity form
-  const [actDate, setActDate] = useState(new Date().toISOString().split("T")[0]);
-  const [actStudents, setActStudents] = useState("");
-  const [actTeachers, setActTeachers] = useState("");
-  const [actDetail, setActDetail] = useState("");
-  const [actKnowledge, setActKnowledge] = useState("");
-  const [actPhotos, setActPhotos] = useState<string[]>([]);
-  const [actRecorder, setActRecorder] = useState("");
-  const [actPosition, setActPosition] = useState("");
-  const [actSignature, setActSignature] = useState<string | null>(null);
-  const [showSignPad, setShowSignPad] = useState(false);
-  const [actSubmitting, setActSubmitting] = useState(false);
-  const [actSuccess, setActSuccess] = useState(false);
-  const [pendingPrint, setPendingPrint] = useState(false);
-  const [roomActivities, setRoomActivities] = useState<Activity[]>([]);
-  const photoInputRef = useRef<HTMLInputElement>(null);
-
   useEffect(() => {
     learningApi.getCheckInsByRoom(roomName).then((ci) => {
       if (ci.success && ci.data) setCheckins(ci.data);
@@ -93,30 +74,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     roomApi.getRoomRegistryByRoom(roomId).then((reg) => {
       if (reg.success && reg.data) setRegistryEntries(reg.data.filter(e => e.สถานะ === "อนุมัติแล้ว"));
     });
-    activityApi.getActivitiesByRoom(roomName).then((act) => {
-      if (act.success && act.data) setRoomActivities(act.data);
-    });
   }, [roomId, roomName]);
-
-  useEffect(() => {
-    if (pendingPrint) {
-      window.print();
-      setPendingPrint(false);
-    }
-  }, [pendingPrint]);
-
-  function handleViewPdf(activity: Activity) {
-    setActDate(activity.วันที่ ? String(activity.วันที่).split("T")[0] : actDate);
-    setActStudents(activity.รายชื่อนักเรียน || "");
-    setActTeachers(activity.รายชื่อครู || "");
-    setActDetail(activity.ลักษณะกิจกรรม || "");
-    setActKnowledge(activity.สาระที่ได้รับ || "");
-    setActPhotos(activity.ImageURL ? activity.ImageURL.split(",").filter(Boolean) : []);
-    setActSignature(activity.Signature || null);
-    setActRecorder(activity.ผู้บันทึก || "");
-    setActPosition(activity.ตำแหน่ง || "");
-    setPendingPrint(true);
-  }
 
   function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -129,13 +87,12 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     }
   }
 
-  function handleCiPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleCiPhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => setCiPhotos(prev => [...prev, reader.result as string]);
-      reader.readAsDataURL(file);
-    });
+    for (const file of files) {
+      const compressed = await compressImage(file);
+      setCiPhotos(prev => [...prev, compressed]);
+    }
   }
 
   async function handleCheckin(e: React.FormEvent) {
@@ -168,58 +125,6 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     }
   }
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => setActPhotos(prev => [...prev, reader.result as string]);
-      reader.readAsDataURL(file);
-    });
-  }
-
-  async function handleAddActivity(e: React.FormEvent) {
-    e.preventDefault();
-    if (!actDate || !actDetail) { return; }
-    setActSubmitting(true);
-    const res = await fetch("/api/gas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "addActivity",
-        date: actDate,
-        roomNumber: roomName,
-        students: actStudents,
-        teachers: actTeachers,
-        learningSource: roomName,
-        activityDetail: actDetail,
-        knowledge: actKnowledge,
-        imageUrl: actPhotos.join("|||"),
-        signature: actSignature || "",
-        recorder: actRecorder,
-        position: actPosition,
-      }),
-    });
-    const data = await res.json();
-    setActSubmitting(false);
-    if (data.success) {
-      setActSuccess(true);
-      window.print();
-      setActStudents("");
-      setActTeachers("");
-      setActDetail("");
-      setActKnowledge("");
-      setActPhotos([]);
-      setActRecorder("");
-      setActPosition("");
-      setActSignature(null);
-      setActDate(new Date().toISOString().split("T")[0]);
-      setTimeout(() => setActSuccess(false), 4000);
-      activityApi.getActivitiesByRoom(roomName).then((act) => {
-        if (act.success && act.data) setRoomActivities(act.data);
-      });
-    }
-  }
-
   const todayCheckins = checkins.filter(c => {
     const d = new Date(c.Timestamp).toLocaleDateString("th-TH");
     return d === new Date().toLocaleDateString("th-TH");
@@ -230,7 +135,6 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
     { id: "info", label: "ทะเบียนห้อง", icon: <Edit2 size={16} /> },
     { id: "checkin", label: "ประวัติการเข้าใช้", icon: <Users size={16} /> },
-    { id: "activity", label: "บันทึกกิจกรรม", icon: <Image size={16} /> },
   ];
 
   return (
@@ -469,208 +373,6 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
               })}
             </div>
           )}
-        </div>
-      )}
-
-      {/* TAB: บันทึกกิจกรรม */}
-      {activeTab === "activity" && (
-        <div className="print-area bg-white rounded-2xl shadow p-6">
-          <div className="no-print flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
-              บันทึกกิจกรรม
-            </h2>
-            <button type="button" onClick={() => window.print()}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-green-400 text-xs">
-              <Printer size={14} /> พิมพ์
-            </button>
-          </div>
-
-          {actSuccess && (
-            <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
-              <CheckCircle size={16} className="text-green-600" />
-              <span className="text-green-700 text-sm">บันทึกกิจกรรมเรียบร้อยแล้ว!</span>
-            </div>
-          )}
-
-          {/* หัวรายงานสำหรับพิมพ์ */}
-          <div className="text-center mb-3">
-            <img src={LOGO_URL} alt="logo" className="mx-auto mb-2"
-              style={{ width: "64px", height: "64px", objectFit: "contain" }} />
-            <p className="font-bold text-base">บันทึกกิจกรรมการเข้าใช้แหล่งเรียนรู้</p>
-            <p className="font-bold text-base">ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
-          </div>
-          <div className="border-t-4 border-b-2 mb-4" style={{ borderColor: "#065f46" }} />
-
-          <form onSubmit={handleAddActivity}>
-            <table className="w-full border-collapse text-sm mb-4" style={{ border: "1px solid #000" }}>
-              <tbody>
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2" style={{ border: "1px solid #000", width: "22%" }}>
-                    วันที่ <span className="no-print text-red-500">*</span>
-                  </td>
-                  <td className="p-2" style={{ border: "1px solid #000", width: "28%" }}>
-                    <input type="date" value={actDate} onChange={e => setActDate(e.target.value)}
-                      className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
-                    <span className="text-sm">
-                      {new Date(actDate).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
-                    </span>
-                  </td>
-                  <td className="font-semibold bg-slate-50 p-2" style={{ border: "1px solid #000", width: "18%" }}>แหล่งเรียนรู้</td>
-                  <td className="p-2" style={{ border: "1px solid #000", width: "32%" }}>
-                    <span className="text-sm font-medium">{roomName}</span>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>รายชื่อนักเรียน</td>
-                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                    <textarea value={actStudents} onChange={e => setActStudents(e.target.value)}
-                      rows={3} placeholder="ระบุรายชื่อนักเรียน..."
-                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ครู/ผู้ดูแล</td>
-                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                    <textarea value={actTeachers} onChange={e => setActTeachers(e.target.value)}
-                      rows={2} placeholder="ระบุรายชื่อครู..."
-                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>
-                    ลักษณะกิจกรรม <span className="no-print text-red-500">*</span>
-                  </td>
-                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                    <textarea value={actDetail} onChange={e => setActDetail(e.target.value)}
-                      rows={4} placeholder="อธิบายลักษณะกิจกรรม..."
-                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>สาระที่ได้รับ</td>
-                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                    <textarea value={actKnowledge} onChange={e => setActKnowledge(e.target.value)}
-                      rows={3} placeholder="ระบุสาระที่ได้รับ..."
-                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
-                  </td>
-                </tr>
-
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ภาพกิจกรรม</td>
-                  <td colSpan={3} className="p-2" style={{ border: "1px solid #000" }}>
-                    <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
-                    <button type="button" onClick={() => photoInputRef.current?.click()}
-                      className="no-print flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-green-400 text-sm mb-3">
-                      <Camera size={16} /> แนบรูปภาพ
-                    </button>
-                    {actPhotos.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {actPhotos.map((p, i) => (
-                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
-                            <img src={p} alt="" className="w-full h-full object-cover" />
-                            <button type="button" onClick={() => setActPhotos(prev => prev.filter((_, idx) => idx !== i))}
-                              className="no-print absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
-                              <X size={12} />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <table className="w-full border-collapse text-sm" style={{ border: "1px solid #000" }}>
-              <tbody>
-                <tr>
-                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000", width: "22%" }}>
-                    ผู้บันทึก
-                  </td>
-                  <td className="p-2 align-top" style={{ border: "1px solid #000", width: "28%" }}>
-                    <input value={actRecorder} onChange={e => setActRecorder(e.target.value)}
-                      placeholder="ชื่อผู้บันทึก"
-                      className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
-                    <input value={actPosition} onChange={e => setActPosition(e.target.value)}
-                      placeholder="ตำแหน่ง"
-                      className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded" />
-                    <p className="text-sm font-medium mt-1">
-                      {actRecorder || "-"}{actPosition && ` (${actPosition})`}
-                    </p>
-                  </td>
-                  <td className="font-semibold bg-slate-50 p-2 align-top text-center" style={{ border: "1px solid #000", width: "18%" }}>
-                    ลายมือชื่อผู้บันทึก
-                  </td>
-                  <td className="p-2 text-center align-middle" style={{ border: "1px solid #000", width: "32%" }}>
-                    {actSignature ? (
-                      <div className="relative inline-block">
-                        <img src={actSignature} alt="ลายเซ็น" className="h-14 object-contain mx-auto" />
-                        <button type="button" onClick={() => setActSignature(null)}
-                          className="no-print absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="no-print">
-                        {showSignPad ? (
-                          <div className="border border-slate-200 rounded-lg p-2 bg-slate-50">
-                            <SignaturePad zone="learn"
-                              onSave={dataUrl => { setActSignature(dataUrl); setShowSignPad(false); }} />
-                            <button type="button" onClick={() => setShowSignPad(false)}
-                              className="text-xs text-slate-400 mt-1">ยกเลิก</button>
-                          </div>
-                        ) : (
-                          <button type="button" onClick={() => setShowSignPad(true)}
-                            className="flex flex-col items-center gap-1 mx-auto text-slate-400 hover:text-green-500">
-                            <Pen size={20} />
-                            <span className="text-xs">กดลงลายมือชื่อ</span>
-                          </button>
-                        )}
-                        <div className="border-b border-slate-300 mt-2 mx-2" />
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-
-            <button type="submit" disabled={actSubmitting || !actDetail}
-              className="no-print w-full mt-4 py-3 rounded-xl text-white font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "#065f46" }}>
-              {actSubmitting ? <><Loader2 size={18} className="animate-spin" /> กำลังบันทึก...</> : <><CheckCircle size={18} /> บันทึกกิจกรรม</>}
-            </button>
-          </form>
-
-          <div className="no-print mt-8 pt-6 border-t border-slate-200">
-            <h3 className="font-semibold text-base mb-3" style={{ color: "#065f46" }}>
-              ประวัติการบันทึกกิจกรรม ({roomActivities.length})
-            </h3>
-            {roomActivities.length === 0 ? (
-              <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีประวัติการบันทึกกิจกรรม</p>
-            ) : (
-              <div className="space-y-2">
-                {[...roomActivities].reverse().map((a) => (
-                  <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
-                      <p className="text-xs text-slate-400">
-                        {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : ""}
-                        {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
-                      </p>
-                    </div>
-                    <button type="button" onClick={() => handleViewPdf(a)}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-green-400 text-xs">
-                      <Printer size={14} /> ดาวน์โหลด PDF
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
       )}
     </div>
