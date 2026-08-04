@@ -21,6 +21,8 @@ export default function LibraryPage() {
       if (r.success && r.data) setLogs(r.data);
       setLoading(false);
     });
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("view") === "activity") setView("activity");
   }, []);
 
   const total = logs.length;

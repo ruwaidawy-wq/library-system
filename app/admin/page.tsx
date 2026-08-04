@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap } from "lucide-react";
+import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap, BarChart3 } from "lucide-react";
 import { libraryApi, activityApi, roomApi, BorrowLog, Activity, RoomRegistryEntry } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
+import LibraryStatsForm from "@/components/library/LibraryStatsForm";
 
 const ADMIN_PASSWORD = "admin1234";
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
-type Tab = "borrow" | "activity" | "registry";
+type Tab = "borrow" | "activity" | "registry" | "stats";
 
 const ALL_ROOMS: Record<string, string> = {
   "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
@@ -418,6 +419,7 @@ if (data.success) {
           { id: "borrow" as Tab, label: "การยืม-คืนหนังสือ", icon: <BookOpen size={18} /> },
           { id: "activity" as Tab, label: "บันทึกกิจกรรม", icon: <ClipboardList size={18} /> },
           { id: "registry" as Tab, label: "ทะเบียนแหล่งเรียนรู้", icon: <GraduationCap size={18} /> },
+          { id: "stats" as Tab, label: "สถิติการใช้บริการ", icon: <BarChart3 size={18} /> },
         ].map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-medium text-sm transition-all"
@@ -950,6 +952,8 @@ if (data.success) {
           )}
         </div>
       )}
+
+      {activeTab === "stats" && <LibraryStatsForm />}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { BookOpen, GraduationCap, ChevronRight, BarChart3 } from "lucide-react";
+import { BookOpen, GraduationCap, ChevronRight, Sparkles } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -93,16 +93,16 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <Link href="/library-stats" className="group w-full max-w-2xl mt-6">
+      <Link href="/library?view=activity" className="group w-full max-w-2xl mt-6">
         <div
           className="rounded-2xl px-8 py-5 text-white cursor-pointer transition-all duration-300 flex items-center justify-between gap-4 group-hover:shadow-xl group-hover:-translate-y-1 animate-fade-in animate-delay-300"
           style={{ background: "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)" }}
         >
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 shrink-0 bg-white/20 rounded-2xl flex items-center justify-center">
-              <BarChart3 size={24} className="text-white" />
+              <Sparkles size={24} className="text-white" />
             </div>
-            <h2 className="font-prompt text-xl font-bold">บันทึกเข้าใช้ห้องสมุด</h2>
+            <h2 className="font-prompt text-xl font-bold">บันทึกกิจกรรมห้องสมุดมีชีวิต (บันทึกเข้าใช้บริการ)</h2>
           </div>
           <ChevronRight
             size={24}
