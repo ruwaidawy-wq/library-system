@@ -93,10 +93,22 @@ export default function HomePage() {
         </Link>
       </div>
 
-      <Link href="/library-stats"
-        className="mt-6 flex items-center gap-2 px-4 py-2 rounded-xl bg-white/70 hover:bg-white text-slate-500 hover:text-slate-700 text-sm shadow-sm transition-all animate-fade-in animate-delay-300">
-        <BarChart3 size={16} />
-        สถิติการใช้บริการห้องสมุด
+      <Link href="/library-stats" className="group w-full max-w-2xl mt-6">
+        <div
+          className="rounded-2xl px-8 py-5 text-white cursor-pointer transition-all duration-300 flex items-center justify-between gap-4 group-hover:shadow-xl group-hover:-translate-y-1 animate-fade-in animate-delay-300"
+          style={{ background: "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)" }}
+        >
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 shrink-0 bg-white/20 rounded-2xl flex items-center justify-center">
+              <BarChart3 size={24} className="text-white" />
+            </div>
+            <h2 className="font-prompt text-xl font-bold">บันทึกเข้าใช้ห้องสมุด</h2>
+          </div>
+          <ChevronRight
+            size={24}
+            className="text-white/60 group-hover:text-white group-hover:translate-x-1 transition-all shrink-0"
+          />
+        </div>
       </Link>
     </div>
   );

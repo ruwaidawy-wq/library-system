@@ -120,7 +120,7 @@ export default function LibraryStatsPage() {
 
         <div className="text-center mb-3">
           <img src={LOGO_URL} alt="logo" className="mx-auto mb-2" style={{ width: "64px", height: "64px", objectFit: "contain" }} />
-          <p className="font-bold text-base">๑. แบบบันทึกสถิติการใช้บริการ (สำหรับตัวชี้วัดเชิงปริมาณ ข้อ ๑)</p>
+          <p className="font-bold text-base">แบบบันทึกสถิติการใช้บริการ</p>
           <p className="text-sm text-slate-500">วัตถุประสงค์: เพื่อสรุปภาพรวมจำนวนผู้เข้าใช้บริการในแต่ละเดือน</p>
         </div>
         <div className="border-t-4 border-b-2 mb-4" style={{ borderColor: "#1e3a5f" }} />
