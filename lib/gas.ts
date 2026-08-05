@@ -30,6 +30,11 @@ export type Teacher = {
   อีเมล?: string;
 };
 
+export type Student = {
+  "ชื่อ-นามสกุล": string;
+  ระดับชั้น?: string;
+};
+
 export type Book = {
   ID: string;
   ชื่อหนังสือ: string;
@@ -90,6 +95,8 @@ export type LeaderboardEntry = {
 
 export const libraryApi = {
   getTeachers: () => gasRequest<Teacher[]>({ action: "getTeachers" }),
+
+  getStudents: () => gasRequest<Student[]>({ action: "getStudents" }),
 
   getBooks: () => gasRequest<Book[]>({ action: "getBooks" }),
 

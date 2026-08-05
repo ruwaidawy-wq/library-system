@@ -2,9 +2,10 @@
 import { useState, useEffect, useRef } from "react";
 import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, LogIn, ImagePlus } from "lucide-react";
 import Link from "next/link";
-import { learningApi, roomApi, CheckIn, RoomRegistryEntry } from "@/lib/gas";
+import { learningApi, libraryApi, roomApi, CheckIn, RoomRegistryEntry, Teacher, Student } from "@/lib/gas";
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 import { compressImage } from "@/lib/imageUtils";
+import NameTagPicker from "@/components/NameTagPicker";
 
 const ALL_ROOMS: Record<string, string> = {
   "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
@@ -55,8 +56,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   // Check-in form
   const [showCheckinForm, setShowCheckinForm] = useState(false);
-  const [ciStudent, setCiStudent] = useState("");
-  const [ciTeacher, setCiTeacher] = useState("");
+  const [ciStudents, setCiStudents] = useState<string[]>([]);
+  const [ciTeachers, setCiTeachers] = useState<string[]>([]);
   const [ciReceived, setCiReceived] = useState("");
   const [ciCorner, setCiCorner] = useState("");
   const [ciPhotos, setCiPhotos] = useState<string[]>([]);
@@ -64,7 +65,12 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [ciSuccess, setCiSuccess] = useState(false);
   const [ciError, setCiError] = useState("");
   const [registryEntries, setRegistryEntries] = useState<RoomRegistryEntry[]>([]);
+  const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
+  const [studentRoster, setStudentRoster] = useState<Student[]>([]);
   const ciPhotoInputRef = useRef<HTMLInputElement>(null);
+
+  const teacherNames = teacherRoster.map((t) => t["ชื่อ-นามสกุล"]);
+  const studentNames = studentRoster.map((s) => s["ชื่อ-นามสกุล"]);
 
   useEffect(() => {
     learningApi.getCheckInsByRoom(roomName).then((ci) => {
@@ -73,6 +79,12 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     });
     roomApi.getRoomRegistryByRoom(roomId).then((reg) => {
       if (reg.success && reg.data) setRegistryEntries(reg.data.filter(e => e.สถานะ === "อนุมัติแล้ว"));
+    });
+    libraryApi.getTeachers().then((res) => {
+      if (res.success && res.data) setTeacherRoster(res.data);
+    });
+    libraryApi.getStudents().then((res) => {
+      if (res.success && res.data) setStudentRoster(res.data);
     });
   }, [roomId, roomName]);
 
@@ -97,21 +109,21 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   async function handleCheckin(e: React.FormEvent) {
     e.preventDefault();
-    if (!ciStudent || !ciTeacher) return;
+    if (ciStudents.length === 0 || ciTeachers.length === 0) return;
     setCiSubmitting(true);
     setCiError("");
     const res = await learningApi.checkIn({
       roomNumber: roomName,
-      teacherName: ciTeacher,
-      studentName: ciStudent,
+      teacherName: ciTeachers.join("\n"),
+      studentName: ciStudents.join("\n"),
       received: ciReceived,
       imageUrl: ciPhotos.join("|||"),
       corner: ciCorner,
     });
     setCiSubmitting(false);
     if (res.success) {
-      setCiStudent("");
-      setCiTeacher("");
+      setCiStudents([]);
+      setCiTeachers([]);
       setCiReceived("");
       setCiCorner("");
       setCiPhotos([]);
@@ -192,19 +204,17 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
             <form onSubmit={handleCheckin} className="space-y-3">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">
-                  ชื่อนักเรียน <span className="text-red-500">*</span> <span className="text-slate-400 font-normal">(ระบุได้หลายคน บรรทัดละ 1 คน)</span>
+                  ชื่อนักเรียน <span className="text-red-500">*</span> <span className="text-slate-400 font-normal">(เลือกได้หลายคน)</span>
                 </label>
-                <textarea value={ciStudent} onChange={e => setCiStudent(e.target.value)}
-                  rows={2} placeholder="ชื่อนักเรียนคนที่ 1&#10;ชื่อนักเรียนคนที่ 2"
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+                <NameTagPicker value={ciStudents} onChange={setCiStudents} options={studentNames}
+                  placeholder="พิมพ์เพื่อค้นหาชื่อนักเรียน..." accentColor="#065f46" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">
-                  ชื่อครู <span className="text-red-500">*</span> <span className="text-slate-400 font-normal">(ระบุได้หลายคน บรรทัดละ 1 คน)</span>
+                  ชื่อครู <span className="text-red-500">*</span> <span className="text-slate-400 font-normal">(เลือกได้หลายคน)</span>
                 </label>
-                <textarea value={ciTeacher} onChange={e => setCiTeacher(e.target.value)}
-                  rows={2} placeholder="ชื่อครูคนที่ 1&#10;ชื่อครูคนที่ 2"
-                  className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+                <NameTagPicker value={ciTeachers} onChange={setCiTeachers} options={teacherNames}
+                  placeholder="พิมพ์เพื่อค้นหาชื่อครู..." accentColor="#065f46" />
               </div>
               {registryEntries.length > 0 && (
                 <div>
@@ -247,7 +257,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                 )}
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={ciSubmitting || !ciStudent || !ciTeacher}
+                <button type="submit" disabled={ciSubmitting || ciStudents.length === 0 || ciTeachers.length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
                   style={{ background: "#065f46" }}>
                   {ciSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}

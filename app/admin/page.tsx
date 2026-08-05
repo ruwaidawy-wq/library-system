@@ -285,7 +285,7 @@ if (data.success) {
           ];
           return `
             <div class="divider"></div>
-            <p style="font-weight:700;font-size:13px;">แบบประเมินพฤติกรรมการเรียนรู้ (สำหรับตัวชี้วัดเชิงคุณภาพ ข้อ ๑)</p>
+            <p style="font-weight:700;font-size:13px;">แบบประเมินพฤติกรรมการเรียนรู้</p>
             ${assessedStudents.map((s) => {
               const total = (s.scores || []).reduce((a, b) => a + b, 0);
               const result = total >= 3 ? "ผ่านเกณฑ์" : "ควรได้รับการกระตุ้น";

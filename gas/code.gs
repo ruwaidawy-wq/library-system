@@ -17,6 +17,7 @@ const SHEETS = {
   ACTIVITIES: "Activities",
   ROOM_REGISTRY: "Room_Registry",
   LIBRARY_STATS: "Library_Stats",
+  STUDENTS: "Students",
 };
 
 function doGet(e) {
@@ -55,6 +56,7 @@ if (e.postData) {
   try {
     switch (action) {
       case "getTeachers":    result = getTeachers(); break;
+      case "getStudents":    result = getStudents(); break;
       case "getBooks":       result = getBooks(); break;
       case "checkOverdue":   result = checkOverdue(data.teacherName); break;
       case "borrowBook":     result = borrowBook(data); break;
@@ -180,6 +182,10 @@ function processImageField(value, prefix) {
 
 function getTeachers() {
   return { success: true, data: sheetToJSON(getSheet(SHEETS.TEACHERS)) };
+}
+
+function getStudents() {
+  return { success: true, data: sheetToJSON(getSheet(SHEETS.STUDENTS)) };
 }
 
 function getBooks() {

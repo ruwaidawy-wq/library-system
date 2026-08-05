@@ -1,9 +1,11 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { CheckCircle, Loader2, Camera, X, Pen, Printer, Plus, Trash2 } from "lucide-react";
-import { activityApi, Activity } from "@/lib/gas";
+import { activityApi, libraryApi, Activity, Teacher, Student } from "@/lib/gas";
 import { compressImage } from "@/lib/imageUtils";
 import SignaturePad from "@/components/SignaturePad";
+import NameSearchSelect from "@/components/NameSearchSelect";
+import NameTagPicker from "@/components/NameTagPicker";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 const LIBRARY_ROOM_KEY = "งานห้องสมุด";
@@ -39,7 +41,7 @@ function resultOf(total: number) {
 
 export default function LibraryActivityForm() {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
-  const [teachers, setTeachers] = useState("");
+  const [teacherList, setTeacherList] = useState<string[]>([]);
   const [activityDetail, setActivityDetail] = useState("");
   const [knowledge, setKnowledge] = useState("");
   const [photos, setPhotos] = useState<string[]>([]);
@@ -52,7 +54,12 @@ export default function LibraryActivityForm() {
   const [success, setSuccess] = useState(false);
   const [pendingPrint, setPendingPrint] = useState(false);
   const [history, setHistory] = useState<Activity[]>([]);
+  const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
+  const [studentRoster, setStudentRoster] = useState<Student[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const teacherNames = teacherRoster.map((t) => t["ชื่อ-นามสกุล"]);
+  const studentNamesRoster = studentRoster.map((s) => s["ชื่อ-นามสกุล"]);
 
   const loadHistory = () => {
     activityApi.getActivitiesByRoom(LIBRARY_ROOM_KEY).then((res) => {
@@ -60,7 +67,15 @@ export default function LibraryActivityForm() {
     });
   };
 
-  useEffect(() => { loadHistory(); }, []);
+  useEffect(() => {
+    loadHistory();
+    libraryApi.getTeachers().then((res) => {
+      if (res.success && res.data) setTeacherRoster(res.data);
+    });
+    libraryApi.getStudents().then((res) => {
+      if (res.success && res.data) setStudentRoster(res.data);
+    });
+  }, []);
 
   useEffect(() => {
     if (pendingPrint) {
@@ -89,6 +104,17 @@ export default function LibraryActivityForm() {
     setStudents((prev) => prev.map((s, i) => (i === idx ? { ...s, ...patch } : s)));
   }
 
+  function selectStudentName(idx: number, name: string) {
+    const match = studentRoster.find((s) => s["ชื่อ-นามสกุล"] === name);
+    updateStudent(idx, { name, grade: match?.ระดับชั้น || "" });
+  }
+
+  function selectRecorder(name: string) {
+    setRecorder(name);
+    const match = teacherRoster.find((t) => t["ชื่อ-นามสกุล"] === name);
+    setPosition(match?.ตำแหน่ง || "");
+  }
+
   function toggleScore(studentIdx: number, itemIdx: number) {
     setStudents((prev) =>
       prev.map((s, i) => {
@@ -112,7 +138,7 @@ export default function LibraryActivityForm() {
   }
 
   function resetForm() {
-    setTeachers("");
+    setTeacherList([]);
     setActivityDetail("");
     setKnowledge("");
     setPhotos([]);
@@ -125,7 +151,7 @@ export default function LibraryActivityForm() {
 
   function loadRecordForView(act: Activity) {
     setDate(act.วันที่ ? String(act.วันที่).split("T")[0] : date);
-    setTeachers(act.รายชื่อครู || "");
+    setTeacherList(act.รายชื่อครู ? act.รายชื่อครู.split("\n").filter(Boolean) : []);
     setActivityDetail(act.ลักษณะกิจกรรม || "");
     setKnowledge(act.สาระที่ได้รับ || "");
     setPhotos(act.ImageURL ? act.ImageURL.split(",").filter(Boolean) : []);
@@ -153,7 +179,7 @@ export default function LibraryActivityForm() {
       date,
       roomNumber: LIBRARY_ROOM_KEY,
       students: studentNames,
-      teachers,
+      teachers: teacherList.join("\n"),
       learningSource: LIBRARY_SOURCE,
       activityDetail,
       knowledge,
@@ -216,9 +242,11 @@ export default function LibraryActivityForm() {
             <tr>
               <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ครู/ผู้ดูแล</td>
               <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                <textarea value={teachers} onChange={(e) => setTeachers(e.target.value)}
-                  rows={2} placeholder="ระบุรายชื่อครู..."
-                  className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                <div className="no-print">
+                  <NameTagPicker value={teacherList} onChange={setTeacherList} options={teacherNames}
+                    placeholder="พิมพ์เพื่อค้นหาชื่อครู..." accentColor="#1e3a5f" />
+                </div>
+                <p className="hidden print:block text-sm px-2 py-1">{teacherList.join(", ") || "-"}</p>
               </td>
             </tr>
             <tr>
@@ -269,7 +297,7 @@ export default function LibraryActivityForm() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <div>
-              <p className="font-bold text-sm">๓. แบบประเมินพฤติกรรมการเรียนรู้ (สำหรับตัวชี้วัดเชิงคุณภาพ ข้อ ๑)</p>
+              <p className="font-bold text-sm">๓. แบบประเมินพฤติกรรมการเรียนรู้</p>
               <p className="text-xs text-slate-500">วัตถุประสงค์: สังเกตความสนใจและการใช้อุปกรณ์ตามศักยภาพรายบุคคล</p>
             </div>
             <button type="button" onClick={addStudent}
@@ -284,9 +312,11 @@ export default function LibraryActivityForm() {
             return (
               <div key={si} className="mb-4" style={{ pageBreakInside: "avoid" }}>
                 <div className="flex items-center gap-2 mb-2">
-                  <input value={s.name} onChange={(e) => updateStudent(si, { name: e.target.value })}
-                    placeholder="ชื่อ-นามสกุล ผู้เรียน"
-                    className="print-input flex-1 outline-none text-sm px-2 py-1.5 border border-slate-200 rounded-lg" />
+                  <div className="flex-1 no-print">
+                    <NameSearchSelect value={s.name} onChange={(name) => selectStudentName(si, name)}
+                      options={studentNamesRoster} placeholder="ชื่อ-นามสกุล ผู้เรียน" accentColor="#1e3a5f" />
+                  </div>
+                  <p className="hidden print:block flex-1 text-sm px-2 py-1.5 border-b border-slate-300">{s.name || "-"}</p>
                   <input value={s.grade} onChange={(e) => updateStudent(si, { grade: e.target.value })}
                     placeholder="ระดับชั้น"
                     className="print-input w-32 outline-none text-sm px-2 py-1.5 border border-slate-200 rounded-lg" />
@@ -350,12 +380,10 @@ export default function LibraryActivityForm() {
             <tr>
               <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000", width: "22%" }}>ผู้บันทึก</td>
               <td className="p-2 align-top" style={{ border: "1px solid #000", width: "28%" }}>
-                <input value={recorder} onChange={(e) => setRecorder(e.target.value)}
-                  placeholder="ชื่อผู้บันทึก"
-                  className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
-                <input value={position} onChange={(e) => setPosition(e.target.value)}
-                  placeholder="ตำแหน่ง"
-                  className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded" />
+                <div className="no-print mb-1">
+                  <NameSearchSelect value={recorder} onChange={selectRecorder}
+                    options={teacherNames} placeholder="ชื่อผู้บันทึก" accentColor="#1e3a5f" />
+                </div>
                 <p className="text-sm font-medium mt-1">
                   {recorder || "-"}{position && ` (${position})`}
                 </p>
