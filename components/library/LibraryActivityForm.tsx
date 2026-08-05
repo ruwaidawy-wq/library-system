@@ -60,6 +60,9 @@ export default function LibraryActivityForm() {
 
   const teacherNames = teacherRoster.map((t) => t["ชื่อ-นามสกุล"]);
   const studentNamesRoster = studentRoster.map((s) => s["ชื่อ-นามสกุล"]);
+  const gradeOptions = Array.from(
+    new Set(studentRoster.map((s) => s.ระดับชั้น).filter((g): g is string => Boolean(g)))
+  );
 
   const loadHistory = () => {
     activityApi.getActivitiesByRoom(LIBRARY_ROOM_KEY).then((res) => {
@@ -317,9 +320,16 @@ export default function LibraryActivityForm() {
                       options={studentNamesRoster} placeholder="ชื่อ-นามสกุล ผู้เรียน" accentColor="#1e3a5f" />
                   </div>
                   <p className="hidden print:block flex-1 text-sm px-2 py-1.5 border-b border-slate-300">{s.name || "-"}</p>
-                  <input value={s.grade} onChange={(e) => updateStudent(si, { grade: e.target.value })}
-                    placeholder="ระดับชั้น"
-                    className="print-input w-32 outline-none text-sm px-2 py-1.5 border border-slate-200 rounded-lg" />
+                  <div className="w-32 shrink-0">
+                    <select value={s.grade} onChange={(e) => updateStudent(si, { grade: e.target.value })}
+                      className="no-print w-full outline-none text-sm px-2 py-1.5 border border-slate-200 rounded-lg bg-white">
+                      <option value="">ระดับชั้น</option>
+                      {gradeOptions.map((g) => (
+                        <option key={g} value={g}>{g}</option>
+                      ))}
+                    </select>
+                    <p className="hidden print:block text-sm px-2 py-1.5 border-b border-slate-300 text-center">{s.grade || "-"}</p>
+                  </div>
                   {students.length > 1 && (
                     <button type="button" onClick={() => removeStudent(si)}
                       className="no-print p-2 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 shrink-0">
