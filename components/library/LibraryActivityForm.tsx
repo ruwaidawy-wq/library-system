@@ -52,6 +52,7 @@ export default function LibraryActivityForm() {
   const [students, setStudents] = useState<StudentAssessment[]>([blankStudent()]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState("");
   const [pendingPrint, setPendingPrint] = useState(false);
   const [history, setHistory] = useState<Activity[]>([]);
   const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
@@ -176,6 +177,7 @@ export default function LibraryActivityForm() {
     e.preventDefault();
     if (!activityDetail) return;
     setSubmitting(true);
+    setError("");
     const studentNames = students.map((s) => s.name).filter(Boolean).join("\n");
     const assessments = JSON.stringify(students.filter((s) => s.name));
     const res = await activityApi.addActivity({
@@ -199,6 +201,8 @@ export default function LibraryActivityForm() {
       resetForm();
       loadHistory();
       setTimeout(() => setSuccess(false), 4000);
+    } else {
+      setError(res.error || "บันทึกกิจกรรมไม่สำเร็จ");
     }
   }
 
@@ -216,6 +220,12 @@ export default function LibraryActivityForm() {
         <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
           <CheckCircle size={16} className="text-green-600" />
           <span className="text-green-700 text-sm">บันทึกกิจกรรมห้องสมุดมีชีวิตเรียบร้อยแล้ว!</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="no-print bg-red-50 border border-red-300 rounded-xl p-3 mb-4 text-red-700 text-sm">
+          {error}
         </div>
       )}
 
