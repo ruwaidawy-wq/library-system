@@ -55,6 +55,7 @@ export default function LibraryActivityForm() {
   const [error, setError] = useState("");
   const [pendingPrint, setPendingPrint] = useState(false);
   const [history, setHistory] = useState<Activity[]>([]);
+  const [historyError, setHistoryError] = useState("");
   const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
   const [studentRoster, setStudentRoster] = useState<Student[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -67,7 +68,12 @@ export default function LibraryActivityForm() {
 
   const loadHistory = async () => {
     const res = await activityApi.getActivitiesByRoom(LIBRARY_ROOM_KEY);
-    if (res.success && res.data) setHistory(res.data);
+    if (res.success && res.data) {
+      setHistory(res.data);
+      setHistoryError("");
+    } else {
+      setHistoryError(res.error || "โหลดประวัติไม่สำเร็จ");
+    }
   };
 
   useEffect(() => {
@@ -454,6 +460,11 @@ export default function LibraryActivityForm() {
         <h3 className="font-semibold text-base mb-3" style={{ color: "#1e3a5f" }}>
           ประวัติการบันทึกกิจกรรมห้องสมุดมีชีวิต ({history.length})
         </h3>
+        {historyError && (
+          <div className="bg-red-50 border border-red-300 rounded-xl p-3 mb-3 text-red-700 text-sm">
+            โหลดประวัติไม่สำเร็จ: {historyError}
+          </div>
+        )}
         {history.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีประวัติการบันทึกกิจกรรม</p>
         ) : (
