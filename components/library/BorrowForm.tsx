@@ -79,7 +79,7 @@ export default function BorrowForm() {
   const [borrowDate, setBorrowDate] = useState(today);
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date(today);
-    d.setDate(d.getDate() + 5);
+    d.setDate(d.getDate() + 14);
     return d.toISOString().split("T")[0];
   });
   const [submitting, setSubmitting] = useState(false);
@@ -106,7 +106,7 @@ export default function BorrowForm() {
     setBorrowDate(val);
     if (val) {
       const d = new Date(val);
-      d.setDate(d.getDate() + 7);
+      d.setDate(d.getDate() + 14);
       setDueDate(d.toISOString().split("T")[0]);
     }
   }
@@ -194,7 +194,7 @@ export default function BorrowForm() {
         setFoundBook(null);
         setBorrowDate(today);
         const resetDue = new Date(today);
-        resetDue.setDate(resetDue.getDate() + 7);
+        resetDue.setDate(resetDue.getDate() + 14);
         setDueDate(resetDue.toISOString().split("T")[0]);
         setFrontPhoto(null);
         setBackPhoto(null);
@@ -220,7 +220,7 @@ export default function BorrowForm() {
 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm space-y-2">
   <p className="font-semibold text-amber-800">📋 เงื่อนไขการยืม-คืนหนังสือ</p>
   <ul className="text-amber-700 space-y-1 text-xs leading-relaxed">
-    <li>• กำหนดคืนหนังสือภายใน <strong>7 วัน</strong> นับจากวันที่ยืม</li>
+    <li>• กำหนดคืนหนังสือภายใน <strong>14 วัน</strong> นับจากวันที่ยืม</li>
     <li>• หากคืนเกินกำหนด มีค่าปรับ <strong>วันละ 5 บาท</strong></li>
     <li>• กรณีหนังสือสูญหายหรือชำรุดเสียสภาพ ต้องชำระค่าเสียหาย <strong>ตามราคาบนปกหนังสือ</strong></li>
     <li>• ค่าปรับที่ได้รับทั้งหมดจะนำไปจัดซื้อหนังสือเพิ่มเติมให้ห้องสมุด</li>
@@ -393,7 +393,7 @@ export default function BorrowForm() {
 
       {/* Due Date (auto) */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 flex items-center justify-between">
-        <span className="text-sm text-blue-700">📅 กำหนดคืนอัตโนมัติ (+7 วัน)</span>
+        <span className="text-sm text-blue-700">📅 กำหนดคืนอัตโนมัติ (+14 วัน)</span>
         <span className="font-semibold text-blue-800">
           {new Date(dueDate).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
         </span>

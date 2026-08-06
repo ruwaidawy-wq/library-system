@@ -220,8 +220,8 @@ function borrowBook(data) {
   const id = generateID("BRW");
   const today = new Date();
 
-// ถ้าไม่ได้ระบุวันคืน ให้คืนภายใน 7 วันอัตโนมัติ
-const returnDate = dueDate ? new Date(dueDate) : new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+// ถ้าไม่ได้ระบุวันคืน ให้คืนภายใน 14 วันอัตโนมัติ
+const returnDate = dueDate ? new Date(dueDate) : new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000);
 logSheet.appendRow([
   id, teacherName, bookId, today, returnDate, "", "รอยืม", 0
 ]);
