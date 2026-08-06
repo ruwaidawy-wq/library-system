@@ -65,10 +65,9 @@ export default function LibraryActivityForm() {
     new Set(studentRoster.map((s) => s.ระดับชั้น).filter((g): g is string => Boolean(g)))
   );
 
-  const loadHistory = () => {
-    activityApi.getActivitiesByRoom(LIBRARY_ROOM_KEY).then((res) => {
-      if (res.success && res.data) setHistory(res.data);
-    });
+  const loadHistory = async () => {
+    const res = await activityApi.getActivitiesByRoom(LIBRARY_ROOM_KEY);
+    if (res.success && res.data) setHistory(res.data);
   };
 
   useEffect(() => {
@@ -197,10 +196,10 @@ export default function LibraryActivityForm() {
     setSubmitting(false);
     if (res.success) {
       setSuccess(true);
+      await loadHistory();
+      setTimeout(() => setSuccess(false), 4000);
       window.print();
       resetForm();
-      loadHistory();
-      setTimeout(() => setSuccess(false), 4000);
     } else {
       setError(res.error || "บันทึกกิจกรรมไม่สำเร็จ");
     }
