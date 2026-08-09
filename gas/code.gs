@@ -759,6 +759,8 @@ function getLibraryUsageStats(monthYear) {
 
   const teacherSet = {};
   const studentSet = {};
+  let groupVisitCount = 0;
+  let selfVisitCount = 0;
 
   const borrowLogs = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
   borrowLogs.forEach(row => {
@@ -773,6 +775,11 @@ function getLibraryUsageStats(monthYear) {
     if (!inTargetMonth(row["วันที่"])) return;
     String(row["รายชื่อครู"] || "").split("\n").map(s => s.trim()).filter(Boolean).forEach(n => { teacherSet[n] = true; });
     String(row["รายชื่อนักเรียน"] || "").split("\n").map(s => s.trim()).filter(Boolean).forEach(n => { studentSet[n] = true; });
+    if (String(row["ประเภทการเข้าใช้"]) === "บันทึกการเข้าใช้ของครู") {
+      selfVisitCount++;
+    } else {
+      groupVisitCount++;
+    }
   });
 
   return {
@@ -780,6 +787,8 @@ function getLibraryUsageStats(monthYear) {
     data: {
       teacherUsed: Object.keys(teacherSet).length,
       studentUsed: Object.keys(studentSet).length,
+      groupVisitCount,
+      selfVisitCount,
     }
   };
 }

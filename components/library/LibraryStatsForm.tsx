@@ -30,6 +30,8 @@ export default function LibraryStatsForm() {
   const [studentUsed, setStudentUsed] = useState("");
   const [note, setNote] = useState("");
   const [recorder, setRecorder] = useState("");
+  const [groupVisitCount, setGroupVisitCount] = useState<number | null>(null);
+  const [selfVisitCount, setSelfVisitCount] = useState<number | null>(null);
   const [counting, setCounting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -56,6 +58,8 @@ export default function LibraryStatsForm() {
     if (res.success && res.data) {
       setStaffUsed(String(res.data.teacherUsed));
       setStudentUsed(String(res.data.studentUsed));
+      setGroupVisitCount(res.data.groupVisitCount);
+      setSelfVisitCount(res.data.selfVisitCount);
     }
     setCounting(false);
   }
@@ -123,7 +127,8 @@ export default function LibraryStatsForm() {
         <div className="no-print mb-4 flex items-end gap-2">
           <div className="flex-1">
             <label className="block text-sm font-medium text-slate-600 mb-1">เลือกเดือน</label>
-            <input type="month" value={monthValue} onChange={(e) => setMonthValue(e.target.value)}
+            <input type="month" value={monthValue}
+              onChange={(e) => { setMonthValue(e.target.value); setGroupVisitCount(null); setSelfVisitCount(null); }}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400" />
           </div>
           <button type="button" onClick={handleAutoCount} disabled={counting}
@@ -133,6 +138,19 @@ export default function LibraryStatsForm() {
             นับอัตโนมัติ
           </button>
         </div>
+
+        {(groupVisitCount !== null || selfVisitCount !== null) && (
+          <div className="no-print grid grid-cols-2 gap-3 mb-4">
+            <div className="rounded-xl p-3 text-center" style={{ background: "#f0f4f8" }}>
+              <p className="text-2xl font-bold" style={{ color: "#1e3a5f" }}>{groupVisitCount ?? 0}</p>
+              <p className="text-xs text-slate-500 mt-0.5">ครั้งที่บันทึกการเข้าใช้ของนักเรียน</p>
+            </div>
+            <div className="rounded-xl p-3 text-center" style={{ background: "#f0f4f8" }}>
+              <p className="text-2xl font-bold" style={{ color: "#1e3a5f" }}>{selfVisitCount ?? 0}</p>
+              <p className="text-xs text-slate-500 mt-0.5">ครั้งที่บันทึกการเข้าใช้ของครู</p>
+            </div>
+          </div>
+        )}
 
         <p className="text-sm mb-3">
           สรุปสถิติการใช้บริการห้องสมุดประจำเดือน

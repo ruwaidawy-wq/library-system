@@ -255,7 +255,7 @@ export type LibraryStat = {
 
 export const statsApi = {
   getLibraryUsageStats: (monthYear: string) =>
-    gasRequest<{ teacherUsed: number; studentUsed: number }>({ action: "getLibraryUsageStats", monthYear }),
+    gasRequest<{ teacherUsed: number; studentUsed: number; groupVisitCount: number; selfVisitCount: number }>({ action: "getLibraryUsageStats", monthYear }),
 
   addLibraryStats: (data: {
     month: string;
