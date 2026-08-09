@@ -165,7 +165,7 @@ export default function LibraryActivityForm() {
   }
 
   function loadRecordForView(act: Activity) {
-    setVisitType(act.ประเภทการเข้าใช้ === "เข้าใช้ด้วยตนเอง" ? "self" : "group");
+    setVisitType(act.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู" ? "self" : "group");
     setTime(act.เวลา || "");
     setDate(act.วันที่ ? String(act.วันที่).split("T")[0] : date);
     setTeacherList(act.รายชื่อครู ? act.รายชื่อครู.split("\n").filter(Boolean) : []);
@@ -208,7 +208,7 @@ export default function LibraryActivityForm() {
       recorder,
       position,
       assessments,
-      visitType: visitType === "self" ? "เข้าใช้ด้วยตนเอง" : "ครูพานักเรียนเข้าใช้",
+      visitType: visitType === "self" ? "บันทึกการเข้าใช้ของครู" : "บันทึกการเข้าใช้ของนักเรียน",
       time: visitType === "self" ? time : "",
     });
     setSubmitting(false);
@@ -239,14 +239,14 @@ export default function LibraryActivityForm() {
           style={visitType === "group"
             ? { background: "#1e3a5f", borderColor: "#1e3a5f", color: "white" }
             : { background: "white", borderColor: "#e2e8f0", color: "#64748b" }}>
-          ครูพานักเรียนเข้าใช้
+          บันทึกการเข้าใช้ของนักเรียน
         </button>
         <button type="button" onClick={() => setVisitType("self")}
           className="flex-1 py-2.5 rounded-xl text-sm font-medium border-2 transition-colors"
           style={visitType === "self"
             ? { background: "#1e3a5f", borderColor: "#1e3a5f", color: "white" }
             : { background: "white", borderColor: "#e2e8f0", color: "#64748b" }}>
-          เข้าใช้ด้วยตนเอง (ไม่มีนักเรียน)
+          บันทึกการเข้าใช้ของครู
         </button>
       </div>
 
@@ -269,7 +269,7 @@ export default function LibraryActivityForm() {
         <p className="font-bold text-base">บันทึกกิจกรรมห้องสมุดมีชีวิต</p>
         <p className="font-bold text-base">ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
         <p className="text-sm text-slate-500 mt-1">
-          ประเภท: {visitType === "self" ? "เข้าใช้ด้วยตนเอง (ไม่มีนักเรียน)" : "ครูพานักเรียนเข้าใช้"}
+          ประเภท: {visitType === "self" ? "บันทึกการเข้าใช้ของครู" : "บันทึกการเข้าใช้ของนักเรียน"}
         </p>
       </div>
       <div className="border-t-4 border-b-2 mb-4" style={{ borderColor: "#1e3a5f" }} />
@@ -521,7 +521,7 @@ export default function LibraryActivityForm() {
               <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate">
-                    {a.ลักษณะกิจกรรม || (a.ประเภทการเข้าใช้ === "เข้าใช้ด้วยตนเอง" ? "เข้าใช้ด้วยตนเอง" : "-")}
+                    {a.ลักษณะกิจกรรม || (a.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู" ? "บันทึกการเข้าใช้ของครู" : "-")}
                   </p>
                   <p className="text-xs text-slate-400">
                     {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : ""}

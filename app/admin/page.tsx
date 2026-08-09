@@ -800,9 +800,9 @@ if (data.success) {
                     <div className="flex-1">
                       <p className="font-semibold text-slate-800">{act.ผู้บันทึก}
                         <span className="text-xs text-slate-400 ml-2">({act.ตำแหน่ง})</span>
-                        {act.ประเภทการเข้าใช้ === "เข้าใช้ด้วยตนเอง" && (
+                        {act.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู" && (
                           <span className="text-xs px-2 py-0.5 rounded-full ml-2" style={{ background: "#f0f4f8", color: "#1e3a5f" }}>
-                            เข้าใช้ด้วยตนเอง
+                            บันทึกการเข้าใช้ของครู
                           </span>
                         )}
                       </p>
