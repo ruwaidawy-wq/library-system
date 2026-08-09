@@ -69,6 +69,8 @@ export default function LibraryActivityForm() {
   const gradeOptions = Array.from(
     new Set(studentRoster.map((s) => s.ระดับชั้น).filter((g): g is string => Boolean(g)))
   );
+  const selfHistory = history.filter((a) => a.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู");
+  const groupHistory = history.filter((a) => a.ประเภทการเข้าใช้ !== "บันทึกการเข้าใช้ของครู");
 
   const loadHistory = async () => {
     const res = await activityApi.getActivitiesByRoom(LIBRARY_ROOM_KEY);
@@ -512,26 +514,23 @@ export default function LibraryActivityForm() {
 
       <div className="no-print mt-8 pt-6 border-t border-slate-200">
         <h3 className="font-semibold text-base mb-3" style={{ color: "#1e3a5f" }}>
-          ประวัติการบันทึกกิจกรรมห้องสมุดมีชีวิต ({history.length})
+          ประวัติการบันทึกกิจกรรมของนักเรียน ({groupHistory.length})
         </h3>
         {historyError && (
           <div className="bg-red-50 border border-red-300 rounded-xl p-3 mb-3 text-red-700 text-sm">
             โหลดประวัติไม่สำเร็จ: {historyError}
           </div>
         )}
-        {history.length === 0 ? (
+        {groupHistory.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีประวัติการบันทึกกิจกรรม</p>
         ) : (
           <div className="space-y-2">
-            {[...history].reverse().map((a) => (
+            {[...groupHistory].reverse().map((a) => (
               <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">
-                    {a.ลักษณะกิจกรรม || (a.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู" ? "บันทึกการเข้าใช้ของครู" : "-")}
-                  </p>
+                  <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
                   <p className="text-xs text-slate-400">
                     {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : ""}
-                    {a.เวลา ? ` ${a.เวลา} น.` : ""}
                     {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
                   </p>
                 </div>
@@ -541,6 +540,48 @@ export default function LibraryActivityForm() {
                 </button>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      <div className="no-print mt-8 pt-6 border-t border-slate-200">
+        <h3 className="font-semibold text-base mb-3" style={{ color: "#1e3a5f" }}>
+          สถิติบันทึกการเข้าใช้ของครู ({selfHistory.length})
+        </h3>
+        {selfHistory.length === 0 ? (
+          <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีการบันทึกการเข้าใช้ของครู</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse text-sm" style={{ border: "1px solid #000" }}>
+              <thead>
+                <tr className="bg-slate-50">
+                  <td className="font-semibold p-2 text-center" style={{ border: "1px solid #000" }}>ลำดับ</td>
+                  <td className="font-semibold p-2" style={{ border: "1px solid #000" }}>วันที่</td>
+                  <td className="font-semibold p-2 text-center" style={{ border: "1px solid #000" }}>เวลา</td>
+                  <td className="font-semibold p-2" style={{ border: "1px solid #000" }}>ชื่อ</td>
+                  <td className="font-semibold p-2" style={{ border: "1px solid #000" }}>ตำแหน่ง</td>
+                  <td className="font-semibold p-2 text-center" style={{ border: "1px solid #000" }}>ลายมือชื่อ</td>
+                </tr>
+              </thead>
+              <tbody>
+                {selfHistory.map((a, i) => (
+                  <tr key={a.ID}>
+                    <td className="p-2 text-center" style={{ border: "1px solid #000" }}>{i + 1}</td>
+                    <td className="p-2" style={{ border: "1px solid #000" }}>
+                      {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}
+                    </td>
+                    <td className="p-2 text-center" style={{ border: "1px solid #000" }}>{a.เวลา || "-"}</td>
+                    <td className="p-2" style={{ border: "1px solid #000" }}>{a.ผู้บันทึก || "-"}</td>
+                    <td className="p-2" style={{ border: "1px solid #000" }}>{a.ตำแหน่ง || "-"}</td>
+                    <td className="p-2 text-center" style={{ border: "1px solid #000" }}>
+                      {a.Signature ? (
+                        <img src={a.Signature} alt="ลายเซ็น" className="h-10 object-contain mx-auto" />
+                      ) : "-"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
