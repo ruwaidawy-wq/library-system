@@ -39,6 +39,14 @@ function resultOf(total: number) {
   return total >= PASS_SCORE ? "มีความสนใจและพัฒนาทักษะได้ดี (ผ่านเกณฑ์)" : "ควรได้รับการกระตุ้นหรือปรับรูปแบบสื่อให้เหมาะสม";
 }
 
+// ค่า "เวลา" บางรายการเก่าอาจถูก Google Sheets แปลงเป็น time serial โดยอัตโนมัติ
+// แล้วส่งกลับมาเป็น ISO datetime (เช่น "1899-12-30T08:19:56.000Z") ให้ดึงเฉพาะ ชม:นาที มาแสดง
+function formatTime(value?: string) {
+  if (!value) return "-";
+  const isoMatch = /T(\d{2}):(\d{2})/.exec(value);
+  return isoMatch ? `${isoMatch[1]}:${isoMatch[2]}` : value;
+}
+
 type VisitType = "group" | "self";
 
 export default function LibraryActivityForm() {
@@ -168,7 +176,7 @@ export default function LibraryActivityForm() {
 
   function loadRecordForView(act: Activity) {
     setVisitType(act.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู" ? "self" : "group");
-    setTime(act.เวลา || "");
+    setTime(act.เวลา ? formatTime(act.เวลา) : "");
     setDate(act.วันที่ ? String(act.วันที่).split("T")[0] : date);
     setTeacherList(act.รายชื่อครู ? act.รายชื่อครู.split("\n").filter(Boolean) : []);
     setActivityDetail(act.ลักษณะกิจกรรม || "");
@@ -187,6 +195,65 @@ export default function LibraryActivityForm() {
       }
     }
     setPendingPrint(true);
+  }
+
+  function handlePrintSelfTable() {
+    const rows = selfHistory.map((a, i) => `
+      <tr>
+        <td style="text-align:center">${i + 1}</td>
+        <td>${a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}</td>
+        <td style="text-align:center">${formatTime(a.เวลา)}</td>
+        <td>${a.ผู้บันทึก || "-"}</td>
+        <td>${a.ตำแหน่ง || "-"}</td>
+        <td style="text-align:center">${a.Signature ? `<img src="${a.Signature}" alt="ลายเซ็น" style="height:40px;object-fit:contain" />` : "-"}</td>
+      </tr>
+    `).join("");
+
+    const content = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+          body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #1a202c; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .header img { width: 64px; height: 64px; object-fit: contain; }
+          .header p { font-size: 14px; font-weight: 700; margin: 4px 0 0; }
+          .divider { border-top: 3px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; margin: 12px 0 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
+          thead td { background: #f0f4f8; font-weight: 700; text-align: center; }
+          .footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${LOGO_URL}" alt="logo" />
+          <p>สถิติบันทึกการเข้าใช้ห้องสมุดของครู</p>
+          <p>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
+        </div>
+        <div class="divider"></div>
+        <table>
+          <thead>
+            <tr>
+              <td style="width:8%">ลำดับ</td>
+              <td style="width:20%">วันที่</td>
+              <td style="width:12%">เวลา</td>
+              <td style="width:22%">ชื่อ</td>
+              <td style="width:18%">ตำแหน่ง</td>
+              <td style="width:20%">ลายมือชื่อ</td>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="footer">พิมพ์วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) { setTimeout(() => { w.print(); }, 800); }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -545,9 +612,17 @@ export default function LibraryActivityForm() {
       </div>
 
       <div className="no-print mt-8 pt-6 border-t border-slate-200">
-        <h3 className="font-semibold text-base mb-3" style={{ color: "#1e3a5f" }}>
-          สถิติบันทึกการเข้าใช้ของครู ({selfHistory.length})
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-base" style={{ color: "#1e3a5f" }}>
+            สถิติบันทึกการเข้าใช้ของครู ({selfHistory.length})
+          </h3>
+          {selfHistory.length > 0 && (
+            <button type="button" onClick={handlePrintSelfTable}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs">
+              <Printer size={14} /> พิมพ์ตาราง
+            </button>
+          )}
+        </div>
         {selfHistory.length === 0 ? (
           <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีการบันทึกการเข้าใช้ของครู</p>
         ) : (
@@ -570,7 +645,7 @@ export default function LibraryActivityForm() {
                     <td className="p-2" style={{ border: "1px solid #000" }}>
                       {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}
                     </td>
-                    <td className="p-2 text-center" style={{ border: "1px solid #000" }}>{a.เวลา || "-"}</td>
+                    <td className="p-2 text-center" style={{ border: "1px solid #000" }}>{formatTime(a.เวลา)}</td>
                     <td className="p-2" style={{ border: "1px solid #000" }}>{a.ผู้บันทึก || "-"}</td>
                     <td className="p-2" style={{ border: "1px solid #000" }}>{a.ตำแหน่ง || "-"}</td>
                     <td className="p-2 text-center" style={{ border: "1px solid #000" }}>

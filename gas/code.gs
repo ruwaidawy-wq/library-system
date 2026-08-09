@@ -480,7 +480,11 @@ function addActivity(data) {
     sheet.getRange(rowIndex, getOrCreateColumn(sheet, "ประเภทการเข้าใช้")).setValue(visitType);
   }
   if (time) {
-    sheet.getRange(rowIndex, getOrCreateColumn(sheet, "เวลา")).setValue(time);
+    // ตั้งรูปแบบเซลล์เป็นข้อความล้วนก่อนใส่ค่า ป้องกัน Google Sheets แปลงค่าเช่น "08:19"
+    // เป็น time serial โดยอัตโนมัติ ซึ่งพอดึงกลับมาจะกลายเป็นวันที่ประหลาดอย่าง
+    // "1899-12-30T08:19:56.000Z" แทนที่จะเป็นข้อความเวลาเดิม
+    const timeCol = getOrCreateColumn(sheet, "เวลา");
+    sheet.getRange(rowIndex, timeCol).setNumberFormat("@").setValue(time);
   }
 
   // แจ้ง Line Notify ไปยัง Admin
