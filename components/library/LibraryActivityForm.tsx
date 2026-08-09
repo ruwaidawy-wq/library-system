@@ -216,7 +216,9 @@ export default function LibraryActivityForm() {
       setSuccess(true);
       await loadHistory();
       setTimeout(() => setSuccess(false), 4000);
-      window.print();
+      if (visitType === "group") {
+        window.print();
+      }
       resetForm();
     } else {
       setError(res.error || "บันทึกกิจกรรมไม่สำเร็จ");
