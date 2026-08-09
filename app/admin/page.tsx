@@ -231,10 +231,15 @@ if (data.success) {
         <table>
           <tr>
             <td class="label">วันที่บันทึก</td>
-            <td>${act.วันที่ ? new Date(act.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}</td>
+            <td>${act.วันที่ ? new Date(act.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}${act.เวลา ? ` เวลา ${act.เวลา} น.` : ""}</td>
             <td class="label">ห้องเรียน</td>
             <td>${act.ห้องเรียน || "-"}</td>
           </tr>
+          ${act.ประเภทการเข้าใช้ ? `
+          <tr>
+            <td class="label">ประเภทการเข้าใช้</td>
+            <td colspan="3">${act.ประเภทการเข้าใช้}</td>
+          </tr>` : ""}
           <tr>
             <td class="label">รายชื่อนักเรียน</td>
             <td colspan="3">${(act.รายชื่อนักเรียน || "-").replace(/\n/g, "<br>")}</td>
@@ -731,7 +736,9 @@ if (data.success) {
                   <div className="space-y-3 text-sm">
                     {[
                       { label: "วันที่", value: selectedActivity.วันที่ ? new Date(selectedActivity.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-" },
+                      { label: "เวลา", value: selectedActivity.เวลา },
                       { label: "ห้องเรียน", value: selectedActivity.ห้องเรียน },
+                      { label: "ประเภทการเข้าใช้", value: selectedActivity.ประเภทการเข้าใช้ },
                       { label: "แหล่งเรียนรู้", value: selectedActivity.แหล่งเรียนรู้ },
                       { label: "รายชื่อนักเรียน", value: selectedActivity.รายชื่อนักเรียน },
                       { label: "ครู/ผู้ดูแล", value: selectedActivity.รายชื่อครู },
@@ -793,10 +800,16 @@ if (data.success) {
                     <div className="flex-1">
                       <p className="font-semibold text-slate-800">{act.ผู้บันทึก}
                         <span className="text-xs text-slate-400 ml-2">({act.ตำแหน่ง})</span>
+                        {act.ประเภทการเข้าใช้ === "เข้าใช้ด้วยตนเอง" && (
+                          <span className="text-xs px-2 py-0.5 rounded-full ml-2" style={{ background: "#f0f4f8", color: "#1e3a5f" }}>
+                            เข้าใช้ด้วยตนเอง
+                          </span>
+                        )}
                       </p>
                       <p className="text-sm text-slate-500 mt-0.5">
                         ห้อง {act.ห้องเรียน} • {act.แหล่งเรียนรู้} •{" "}
                         {act.วันที่ ? new Date(act.วันที่).toLocaleDateString("th-TH") : ""}
+                        {act.เวลา ? ` • ${act.เวลา} น.` : ""}
                       </p>
                       {act.ลักษณะกิจกรรม && (
                         <p className="text-xs text-slate-400 mt-1 line-clamp-2">{act.ลักษณะกิจกรรม}</p>

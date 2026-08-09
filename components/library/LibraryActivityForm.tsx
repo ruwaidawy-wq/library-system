@@ -39,7 +39,11 @@ function resultOf(total: number) {
   return total >= PASS_SCORE ? "มีความสนใจและพัฒนาทักษะได้ดี (ผ่านเกณฑ์)" : "ควรได้รับการกระตุ้นหรือปรับรูปแบบสื่อให้เหมาะสม";
 }
 
+type VisitType = "group" | "self";
+
 export default function LibraryActivityForm() {
+  const [visitType, setVisitType] = useState<VisitType>("group");
+  const [time, setTime] = useState("");
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [teacherList, setTeacherList] = useState<string[]>([]);
   const [activityDetail, setActivityDetail] = useState("");
@@ -147,6 +151,8 @@ export default function LibraryActivityForm() {
   }
 
   function resetForm() {
+    setVisitType("group");
+    setTime("");
     setTeacherList([]);
     setActivityDetail("");
     setKnowledge("");
@@ -159,6 +165,8 @@ export default function LibraryActivityForm() {
   }
 
   function loadRecordForView(act: Activity) {
+    setVisitType(act.ประเภทการเข้าใช้ === "เข้าใช้ด้วยตนเอง" ? "self" : "group");
+    setTime(act.เวลา || "");
     setDate(act.วันที่ ? String(act.วันที่).split("T")[0] : date);
     setTeacherList(act.รายชื่อครู ? act.รายชื่อครู.split("\n").filter(Boolean) : []);
     setActivityDetail(act.ลักษณะกิจกรรม || "");
@@ -167,6 +175,7 @@ export default function LibraryActivityForm() {
     setSignature(act.Signature || null);
     setRecorder(act.ผู้บันทึก || "");
     setPosition(act.ตำแหน่ง || "");
+    setStudents([blankStudent()]);
     if (act.การประเมิน) {
       try {
         const parsed = JSON.parse(act.การประเมิน);
@@ -180,16 +189,17 @@ export default function LibraryActivityForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!activityDetail) return;
+    const canSubmit = visitType === "self" ? Boolean(recorder && time) : Boolean(activityDetail);
+    if (!canSubmit) return;
     setSubmitting(true);
     setError("");
-    const studentNames = students.map((s) => s.name).filter(Boolean).join("\n");
-    const assessments = JSON.stringify(students.filter((s) => s.name));
+    const studentNames = visitType === "self" ? "" : students.map((s) => s.name).filter(Boolean).join("\n");
+    const assessments = visitType === "self" ? "[]" : JSON.stringify(students.filter((s) => s.name));
     const res = await activityApi.addActivity({
       date,
       roomNumber: LIBRARY_ROOM_KEY,
       students: studentNames,
-      teachers: teacherList.join("\n"),
+      teachers: visitType === "self" ? recorder : teacherList.join("\n"),
       learningSource: LIBRARY_SOURCE,
       activityDetail,
       knowledge,
@@ -198,6 +208,8 @@ export default function LibraryActivityForm() {
       recorder,
       position,
       assessments,
+      visitType: visitType === "self" ? "เข้าใช้ด้วยตนเอง" : "ครูพานักเรียนเข้าใช้",
+      time: visitType === "self" ? time : "",
     });
     setSubmitting(false);
     if (res.success) {
@@ -221,6 +233,23 @@ export default function LibraryActivityForm() {
         </button>
       </div>
 
+      <div className="no-print flex gap-2 mb-4">
+        <button type="button" onClick={() => setVisitType("group")}
+          className="flex-1 py-2.5 rounded-xl text-sm font-medium border-2 transition-colors"
+          style={visitType === "group"
+            ? { background: "#1e3a5f", borderColor: "#1e3a5f", color: "white" }
+            : { background: "white", borderColor: "#e2e8f0", color: "#64748b" }}>
+          ครูพานักเรียนเข้าใช้
+        </button>
+        <button type="button" onClick={() => setVisitType("self")}
+          className="flex-1 py-2.5 rounded-xl text-sm font-medium border-2 transition-colors"
+          style={visitType === "self"
+            ? { background: "#1e3a5f", borderColor: "#1e3a5f", color: "white" }
+            : { background: "white", borderColor: "#e2e8f0", color: "#64748b" }}>
+          เข้าใช้ด้วยตนเอง (ไม่มีนักเรียน)
+        </button>
+      </div>
+
       {success && (
         <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
           <CheckCircle size={16} className="text-green-600" />
@@ -239,6 +268,9 @@ export default function LibraryActivityForm() {
         <img src={LOGO_URL} alt="logo" className="mx-auto mb-2" style={{ width: "64px", height: "64px", objectFit: "contain" }} />
         <p className="font-bold text-base">บันทึกกิจกรรมห้องสมุดมีชีวิต</p>
         <p className="font-bold text-base">ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
+        <p className="text-sm text-slate-500 mt-1">
+          ประเภท: {visitType === "self" ? "เข้าใช้ด้วยตนเอง (ไม่มีนักเรียน)" : "ครูพานักเรียนเข้าใช้"}
+        </p>
       </div>
       <div className="border-t-4 border-b-2 mb-4" style={{ borderColor: "#1e3a5f" }} />
 
@@ -257,19 +289,33 @@ export default function LibraryActivityForm() {
                 </span>
               </td>
             </tr>
-            <tr>
-              <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ครู/ผู้ดูแล</td>
-              <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                <div className="no-print">
-                  <NameTagPicker value={teacherList} onChange={setTeacherList} options={teacherNames}
-                    placeholder="พิมพ์เพื่อค้นหาชื่อครู..." accentColor="#1e3a5f" />
-                </div>
-                <p className="hidden print:block text-sm px-2 py-1">{teacherList.join(", ") || "-"}</p>
-              </td>
-            </tr>
+            {visitType === "self" && (
+              <tr>
+                <td className="font-semibold bg-slate-50 p-2" style={{ border: "1px solid #000" }}>
+                  เวลา <span className="no-print text-red-500">*</span>
+                </td>
+                <td className="p-2" style={{ border: "1px solid #000" }} colSpan={3}>
+                  <input type="time" value={time} onChange={(e) => setTime(e.target.value)}
+                    className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
+                  <span className="text-sm">{time || "-"}</span>
+                </td>
+              </tr>
+            )}
+            {visitType === "group" && (
+              <tr>
+                <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ครู/ผู้ดูแล</td>
+                <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                  <div className="no-print">
+                    <NameTagPicker value={teacherList} onChange={setTeacherList} options={teacherNames}
+                      placeholder="พิมพ์เพื่อค้นหาชื่อครู..." accentColor="#1e3a5f" />
+                  </div>
+                  <p className="hidden print:block text-sm px-2 py-1">{teacherList.join(", ") || "-"}</p>
+                </td>
+              </tr>
+            )}
             <tr>
               <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>
-                ลักษณะกิจกรรม <span className="no-print text-red-500">*</span>
+                ลักษณะกิจกรรม {visitType === "group" && <span className="no-print text-red-500">*</span>}
               </td>
               <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
                 <textarea value={activityDetail} onChange={(e) => setActivityDetail(e.target.value)}
@@ -312,6 +358,7 @@ export default function LibraryActivityForm() {
         </table>
 
         {/* แบบประเมินพฤติกรรมการเรียนรู้ */}
+        {visitType === "group" && (
         <div className="mb-4">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -399,6 +446,7 @@ export default function LibraryActivityForm() {
             เกณฑ์การสรุปผล: {PASS_SCORE}-{ASSESSMENT_ITEMS.length} คะแนน มีความสนใจและพัฒนาทักษะได้ดี (ผ่านเกณฑ์) | 0-{PASS_SCORE - 1} คะแนน ควรได้รับการกระตุ้นหรือปรับรูปแบบสื่อให้เหมาะสม
           </p>
         </div>
+        )}
 
         <table className="w-full border-collapse text-sm" style={{ border: "1px solid #000" }}>
           <tbody>
@@ -449,7 +497,7 @@ export default function LibraryActivityForm() {
           </tbody>
         </table>
 
-        <button type="submit" disabled={submitting || !activityDetail}
+        <button type="submit" disabled={submitting || (visitType === "self" ? !recorder || !time : !activityDetail)}
           className="no-print w-full mt-4 py-3 rounded-xl text-white font-semibold disabled:opacity-40 flex items-center justify-center gap-2"
           style={{ background: "#1e3a5f" }}>
           {submitting ? <><Loader2 size={18} className="animate-spin" /> กำลังบันทึก...</> : <><CheckCircle size={18} /> บันทึกกิจกรรม</>}
@@ -472,9 +520,12 @@ export default function LibraryActivityForm() {
             {[...history].reverse().map((a) => (
               <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
+                  <p className="text-sm font-medium text-slate-800 truncate">
+                    {a.ลักษณะกิจกรรม || (a.ประเภทการเข้าใช้ === "เข้าใช้ด้วยตนเอง" ? "เข้าใช้ด้วยตนเอง" : "-")}
+                  </p>
                   <p className="text-xs text-slate-400">
                     {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : ""}
+                    {a.เวลา ? ` ${a.เวลา} น.` : ""}
                     {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
                   </p>
                 </div>
