@@ -253,9 +253,17 @@ export type LibraryStat = {
   ผู้บันทึก: string;
 };
 
+export type PublicLibraryStats = {
+  roomUsage: Record<string, number>;
+  teacherMonthlyFrequency: { month: string; count: number }[];
+};
+
 export const statsApi = {
   getLibraryUsageStats: (monthYear: string) =>
     gasRequest<{ teacherUsed: number; studentUsed: number; groupVisitCount: number; selfVisitCount: number }>({ action: "getLibraryUsageStats", monthYear }),
+
+  getPublicLibraryStats: () =>
+    gasRequest<PublicLibraryStats>({ action: "getPublicLibraryStats" }),
 
   addLibraryStats: (data: {
     month: string;

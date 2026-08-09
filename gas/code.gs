@@ -84,6 +84,7 @@ case "getLibraryUsageStats":   result = getLibraryUsageStats(data.monthYear); br
 case "addLibraryStats":        result = addLibraryStats(data); break;
 case "getLibraryStats":        result = getLibraryStats(); break;
 case "deleteLibraryStats":     result = deleteLibraryStats(data.id); break;
+case "getPublicLibraryStats":  result = getPublicLibraryStats(); break;
       default: result = { success: false, error: "Unknown action: " + action };
 
     }
@@ -825,4 +826,53 @@ function deleteLibraryStats(id) {
     }
   }
   return { success: false, error: "ไม่พบข้อมูล" };
+}
+
+// ============================================================
+// PUBLIC STATS (สำหรับหน้าสรุปสถิติที่บุคคลทั่วไปเข้าดูได้ — ไม่ระบุชื่อบุคคลใดๆ)
+// ============================================================
+
+// สรุปจำนวนครั้งที่เข้าใช้แต่ละห้องเรียน/แหล่งเรียนรู้ (รวม CheckIn_Log ทุกห้อง + งานห้องสมุด)
+// และความถี่การเข้าใช้ของครูรายเดือนย้อนหลัง 12 เดือน (นับจำนวนครั้งเท่านั้น ไม่ระบุชื่อ)
+function getPublicLibraryStats() {
+  const roomUsage = {};
+  const checkins = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+  checkins.forEach(row => {
+    const room = row["RoomNumber"];
+    if (!room) return;
+    roomUsage[room] = (roomUsage[room] || 0) + 1;
+  });
+
+  const activities = sheetToJSON(getSheet(SHEETS.ACTIVITIES));
+  activities.forEach(row => {
+    const room = row["ห้องเรียน"];
+    if (!room) return;
+    roomUsage[room] = (roomUsage[room] || 0) + 1;
+  });
+
+  // นับความถี่การเข้าใช้ของครูรายเดือน (นับจำนวนครั้งที่มีชื่อครูปรากฏ ไม่เก็บชื่อ) ย้อนหลัง 12 เดือน
+  const monthlyMap = {};
+  function addTeacherCount(dateValue, teacherField) {
+    if (!dateValue || !teacherField) return;
+    const d = new Date(dateValue);
+    if (isNaN(d.getTime())) return;
+    const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    const count = String(teacherField).split("\n").map(s => s.trim()).filter(Boolean).length;
+    monthlyMap[key] = (monthlyMap[key] || 0) + count;
+  }
+  checkins.forEach(row => addTeacherCount(row["Timestamp"], row["ชื่อครู"]));
+  activities.forEach(row => addTeacherCount(row["วันที่"], row["รายชื่อครู"]));
+
+  const today = new Date();
+  const teacherMonthlyFrequency = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    teacherMonthlyFrequency.push({ month: key, count: monthlyMap[key] || 0 });
+  }
+
+  return {
+    success: true,
+    data: { roomUsage, teacherMonthlyFrequency }
+  };
 }

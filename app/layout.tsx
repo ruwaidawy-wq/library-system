@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Sarabun } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 
@@ -26,6 +27,11 @@ export default function RootLayout({
         <main className="min-h-screen">{children}</main>
         <footer className="no-print text-center text-xs text-slate-400 py-4 space-y-0.5">
           <p>ระบบจัดการห้องสมุดและแหล่งเรียนรู้ • โครงการ Learning space for all งานห้องสมุดและแหล่งเรียนรู้ ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
+          <p>
+            <Link href="/library-stats-public" className="underline hover:text-slate-500">
+              สถิติการเข้าใช้บริการ
+            </Link>
+          </p>
           <p>พัฒนาโดย นางสาวรูวัยดา หวังยี</p>
         </footer>
       </body>
