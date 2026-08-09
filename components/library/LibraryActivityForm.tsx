@@ -579,6 +579,7 @@ export default function LibraryActivityForm() {
         </button>
       </form>
 
+      {visitType === "group" && (
       <div className="no-print mt-8 pt-6 border-t border-slate-200">
         <h3 className="font-semibold text-base mb-3" style={{ color: "#1e3a5f" }}>
           ประวัติการบันทึกกิจกรรมของนักเรียน ({groupHistory.length})
@@ -610,7 +611,9 @@ export default function LibraryActivityForm() {
           </div>
         )}
       </div>
+      )}
 
+      {visitType === "self" && (
       <div className="no-print mt-8 pt-6 border-t border-slate-200">
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-semibold text-base" style={{ color: "#1e3a5f" }}>
@@ -660,6 +663,7 @@ export default function LibraryActivityForm() {
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }
