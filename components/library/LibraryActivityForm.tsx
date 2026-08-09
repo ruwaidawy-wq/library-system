@@ -313,47 +313,51 @@ export default function LibraryActivityForm() {
                 </td>
               </tr>
             )}
-            <tr>
-              <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>
-                ลักษณะกิจกรรม {visitType === "group" && <span className="no-print text-red-500">*</span>}
-              </td>
-              <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                <textarea value={activityDetail} onChange={(e) => setActivityDetail(e.target.value)}
-                  rows={3} placeholder="อธิบายลักษณะกิจกรรม..."
-                  className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
-              </td>
-            </tr>
-            <tr>
-              <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>สาระที่ได้รับ</td>
-              <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
-                <textarea value={knowledge} onChange={(e) => setKnowledge(e.target.value)}
-                  rows={2} placeholder="ระบุสาระที่ได้รับ..."
-                  className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
-              </td>
-            </tr>
-            <tr>
-              <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ภาพกิจกรรม</td>
-              <td colSpan={3} className="p-2" style={{ border: "1px solid #000" }}>
-                <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
-                <button type="button" onClick={() => photoInputRef.current?.click()}
-                  className="no-print flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-400 text-sm mb-3">
-                  <Camera size={16} /> แนบรูปภาพ
-                </button>
-                {photos.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2">
-                    {photos.map((p, i) => (
-                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
-                        <img src={p} alt="" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
-                          className="no-print absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
-                          <X size={12} />
-                        </button>
+            {visitType === "group" && (
+              <>
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>
+                    ลักษณะกิจกรรม <span className="no-print text-red-500">*</span>
+                  </td>
+                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                    <textarea value={activityDetail} onChange={(e) => setActivityDetail(e.target.value)}
+                      rows={3} placeholder="อธิบายลักษณะกิจกรรม..."
+                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>สาระที่ได้รับ</td>
+                  <td colSpan={3} className="p-1" style={{ border: "1px solid #000" }}>
+                    <textarea value={knowledge} onChange={(e) => setKnowledge(e.target.value)}
+                      rows={2} placeholder="ระบุสาระที่ได้รับ..."
+                      className="print-textarea w-full outline-none text-sm px-2 py-1 border border-slate-200 rounded-lg resize-none" />
+                  </td>
+                </tr>
+                <tr>
+                  <td className="font-semibold bg-slate-50 p-2 align-top" style={{ border: "1px solid #000" }}>ภาพกิจกรรม</td>
+                  <td colSpan={3} className="p-2" style={{ border: "1px solid #000" }}>
+                    <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
+                    <button type="button" onClick={() => photoInputRef.current?.click()}
+                      className="no-print flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-blue-400 text-sm mb-3">
+                      <Camera size={16} /> แนบรูปภาพ
+                    </button>
+                    {photos.length > 0 && (
+                      <div className="grid grid-cols-3 gap-2">
+                        {photos.map((p, i) => (
+                          <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                            <img src={p} alt="" className="w-full h-full object-cover" />
+                            <button type="button" onClick={() => setPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                              className="no-print absolute top-1 right-1 bg-white rounded-full p-0.5 shadow">
+                              <X size={12} />
+                            </button>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </td>
-            </tr>
+                    )}
+                  </td>
+                </tr>
+              </>
+            )}
           </tbody>
         </table>
 
