@@ -76,19 +76,22 @@ export default function LibraryStatsPublicPage() {
             {roomRows.length === 0 ? (
               <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีข้อมูลการเข้าใช้</p>
             ) : (
-              <div className="space-y-2.5">
+              <div className="space-y-3">
                 {roomRows.map(([room, count]) => (
-                  <div key={room} title={`${room}: ${count} ครั้ง`}>
+                  <div key={room} title={`${room}: ${count} ครั้ง`} className="group">
                     <div className="flex items-baseline justify-between gap-2 mb-1">
                       <span className="text-sm text-slate-700 truncate">{room}</span>
-                      <span className="text-xs font-semibold text-slate-500 shrink-0">{count} ครั้ง</span>
+                      <span className="text-xs font-bold shrink-0" style={{ color: "#1e3a5f" }}>{count} ครั้ง</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="relative h-4 rounded-md bg-slate-100 overflow-hidden">
+                      <div className="absolute inset-y-0 left-1/4 w-px bg-white/70" />
+                      <div className="absolute inset-y-0 left-1/2 w-px bg-white/70" />
+                      <div className="absolute inset-y-0 left-3/4 w-px bg-white/70" />
                       <div
-                        className="h-full rounded-full transition-all"
+                        className="relative h-full rounded-md transition-all group-hover:opacity-80"
                         style={{
                           width: `${Math.max(4, (count / maxRoomCount) * 100)}%`,
-                          background: "#1e3a5f",
+                          background: "linear-gradient(90deg, #2d5a8e, #1e3a5f)",
                         }}
                       />
                     </div>
@@ -111,18 +114,22 @@ export default function LibraryStatsPublicPage() {
               <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีข้อมูลการเข้าใช้</p>
             ) : (
               <>
-                <div className="flex items-end gap-1.5 h-32">
+                <div className="relative flex items-end gap-1.5 h-40 border-b-2 border-slate-300">
+                  <div className="absolute inset-x-0 top-0 border-t border-dashed border-slate-200" />
+                  <div className="absolute inset-x-0 top-1/4 border-t border-dashed border-slate-200" />
+                  <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-slate-200" />
+                  <div className="absolute inset-x-0 top-3/4 border-t border-dashed border-slate-200" />
                   {months.map((m) => (
                     <div key={m.month} title={`${monthLabel(m.month)}: ${m.count} ครั้ง`}
-                      className="flex-1 h-full flex flex-col justify-end items-center group">
-                      <span className="text-[10px] font-semibold text-slate-500 mb-1">
+                      className="relative flex-1 h-full flex flex-col justify-end items-center group">
+                      <span className="text-[10px] font-bold mb-1" style={{ color: "#065f46" }}>
                         {m.count > 0 ? m.count : ""}
                       </span>
                       <div
                         className="w-full rounded-t-md transition-opacity group-hover:opacity-80"
                         style={{
                           height: `${(m.count / maxMonthCount) * 100}%`,
-                          background: "#065f46",
+                          background: "linear-gradient(180deg, #059669, #065f46)",
                           minHeight: m.count > 0 ? "4px" : "0",
                         }}
                       />
