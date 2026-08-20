@@ -6,6 +6,7 @@ import { learningApi, libraryApi, roomApi, CheckIn, RoomRegistryEntry, Teacher, 
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 import { compressImage } from "@/lib/imageUtils";
 import NameTagPicker from "@/components/NameTagPicker";
+import ZoomableImage from "@/components/ZoomableImage";
 
 const ALL_ROOMS: Record<string, string> = {
   "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
@@ -348,7 +349,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
               </h3>
               <div className="grid grid-cols-3 gap-2">
                 {checkinPhotos.map((p, i) => (
-                  <img key={i} src={p} alt="" className="aspect-square rounded-lg object-cover w-full" />
+                  <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                    <ZoomableImage src={p} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                  </div>
                 ))}
               </div>
             </div>
