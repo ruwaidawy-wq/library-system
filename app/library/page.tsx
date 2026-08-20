@@ -9,7 +9,7 @@ import BookDashboard from "@/components/library/BookDashboard";
 import LibraryActivityForm from "@/components/library/LibraryActivityForm";
 import { libraryApi, BorrowLog } from "@/lib/gas";
 
-type View = "dashboard" | "borrow" | "return" | "log" | "books" | "activity";
+type View = "dashboard" | "borrow" | "return" | "log" | "activity";
 
 export default function LibraryPage() {
   const [view, setView] = useState<View>("dashboard");
@@ -64,16 +64,6 @@ export default function LibraryPage() {
     </div>
   );
 
-  if (view === "books") return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      <button onClick={() => setView("dashboard")}
-        className="flex items-center gap-2 mb-6 text-slate-500 hover:text-slate-700">
-        <ArrowLeft size={18} /> กลับหน้าหลัก
-      </button>
-      <BookDashboard />
-    </div>
-  );
-
   if (view === "activity") return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <button onClick={() => setView("dashboard")}
@@ -99,7 +89,7 @@ export default function LibraryPage() {
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         <button onClick={() => setView("borrow")}
           className="rounded-2xl p-5 text-white flex flex-col items-center gap-2 transition-all hover:shadow-lg hover:-translate-y-1"
           style={{ background: "linear-gradient(135deg, #1e3a5f, #2d5a8e)" }}>
@@ -111,12 +101,6 @@ export default function LibraryPage() {
           style={{ background: "linear-gradient(135deg, #065f46, #059669)" }}>
           <BookMarked size={28} />
           <span className="font-semibold text-sm">คืนหนังสือ</span>
-        </button>
-        <button onClick={() => setView("books")}
-          className="rounded-2xl p-5 text-white flex flex-col items-center gap-2 transition-all hover:shadow-lg hover:-translate-y-1"
-          style={{ background: "linear-gradient(135deg, #7c3aed, #a78bfa)" }}>
-          <BookOpen size={28} />
-          <span className="font-semibold text-sm">รายการหนังสือ</span>
         </button>
         <button onClick={() => setView("log")}
           className="rounded-2xl p-5 text-white flex flex-col items-center gap-2 transition-all hover:shadow-lg hover:-translate-y-1"
@@ -223,6 +207,11 @@ export default function LibraryPage() {
                 ดูทั้งหมด ({logs.length} รายการ)
               </button>
             )}
+          </div>
+
+          {/* คลังหนังสือ */}
+          <div className="mt-6">
+            <BookDashboard />
           </div>
         </>
       )}
