@@ -616,7 +616,7 @@ function getLeaderboard() {
   const sorted = Object.entries(counts)
     .map(([room, count]) => ({ room, count }))
     .sort((a, b) => b.count - a.count)
-    .slice(0, 3);
+    .slice(0, 5);
   return { success: true, data: sorted };
 }
 

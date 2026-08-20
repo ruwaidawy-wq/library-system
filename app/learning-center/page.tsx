@@ -65,7 +65,7 @@ export default function LearningCenterPage() {
     });
   }, []);
 
-  const medals = ["🥇", "🥈", "🥉"];
+  const medals = ["🥇", "🥈", "🥉", "4", "5"];
   const activeRooms = Object.keys(roomStats).length;
   const filteredRooms = ALL_ROOMS.filter(r =>
     r.name.includes(searchQuery)
@@ -112,10 +112,10 @@ export default function LearningCenterPage() {
               <div className="flex items-center gap-2 mb-4">
                 <Trophy size={20} style={{ color: "#065f46" }} />
                 <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
-                  Top 3 ห้องเรียนยอดนิยม
+                  Top 5 ห้องเรียนยอดนิยม
                 </h2>
               </div>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                 {leaderboard.map((entry, i) => (
                   <Link
                     key={entry.room}
@@ -126,9 +126,11 @@ export default function LearningCenterPage() {
                         ? "linear-gradient(135deg, #f59e0b, #d97706)"
                         : i === 1
                         ? "linear-gradient(135deg, #94a3b8, #64748b)"
-                        : "linear-gradient(135deg, #cd7c4a, #a86134)",
+                        : i === 2
+                        ? "linear-gradient(135deg, #cd7c4a, #a86134)"
+                        : "linear-gradient(135deg, #065f46, #059669)",
                     }}>
-                    <div className="text-2xl mb-1">{medals[i]}</div>
+                    <div className="text-2xl mb-1 font-bold">{medals[i]}</div>
                     <p className="font-bold text-xs">{entry.room}</p>
                     <p className="text-xs opacity-80">{entry.count} ครั้ง</p>
                   </Link>

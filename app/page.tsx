@@ -102,7 +102,7 @@ export default function HomePage() {
             <div className="w-12 h-12 shrink-0 bg-white/20 rounded-2xl flex items-center justify-center">
               <Sparkles size={24} className="text-white" />
             </div>
-            <h2 className="font-prompt text-xl font-bold">บันทึกกิจกรรมห้องสมุดมีชีวิต (บันทึกเข้าใช้บริการ)</h2>
+            <h2 className="font-prompt text-xl font-bold">บันทึกกิจกรรมห้องสมุดมีชีวิต (บันทึกเข้าใช้บริการเฉพาะห้องสมุด)</h2>
           </div>
           <ChevronRight
             size={24}

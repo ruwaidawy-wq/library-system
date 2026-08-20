@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Plus, Edit2, Trash2, Save, X, Camera, Loader2, CheckCircle } from "lucide-react";
 import { roomApi, RoomRegistryEntry } from "@/lib/gas";
+import ZoomableImage from "@/components/ZoomableImage";
 
 const ROOM_TYPES = [
   "ห้องเรียน", "ห้องบำบัด", "ห้องกิจกรรม", "ห้องดนตรี",
@@ -281,7 +282,9 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
                 {photos.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mb-3">
                     {photos.map((p, i) => (
-                      <img key={i} src={p} alt="" className="aspect-square rounded-lg object-cover w-full" />
+                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden">
+                        <ZoomableImage src={p} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                      </div>
                     ))}
                   </div>
                 )}
