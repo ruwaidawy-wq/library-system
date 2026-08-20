@@ -132,11 +132,24 @@ if (data.success) {
   }
 }
 
-  async function handleReject(log: BorrowLog) {
+  async function handleRejectBorrow(log: BorrowLog) {
+    setProcessing(log.ID);
+    const res = await libraryApi.rejectBorrow(log.ID);
+    setProcessing(null);
+    if (res.success) {
+      setBorrowSuccess(`ปฏิเสธคำขอยืม ${log.รหัสหนังสือ} แล้ว`);
+      setTimeout(() => setBorrowSuccess(""), 3000);
+      loadLogs();
+    } else {
+      setBorrowSuccess(`เกิดข้อผิดพลาด: ${res.error}`);
+    }
+  }
+
+  async function handleRejectReturn(log: BorrowLog) {
     setProcessing(log.ID);
     await libraryApi.returnBook({ borrowId: log.ID, returnStatus: "rejected" });
     setProcessing(null);
-    setBorrowSuccess(`ปฏิเสธคำขอ ${log.รหัสหนังสือ} แล้ว`);
+    setBorrowSuccess(`ปฏิเสธคำขอคืน ${log.รหัสหนังสือ} แล้ว`);
     setTimeout(() => setBorrowSuccess(""), 3000);
     loadLogs();
   }
@@ -484,7 +497,7 @@ if (data.success) {
                         {processing === log.ID ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                         อนุมัติการยืม
                       </button>
-                      <button onClick={() => handleReject(log)} disabled={processing === log.ID}
+                      <button onClick={() => handleRejectBorrow(log)} disabled={processing === log.ID}
                         className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
                         style={{ background: "#dc2626" }}>
                         <XCircle size={16} /> ปฏิเสธ
@@ -569,7 +582,7 @@ if (data.success) {
                           {processing === log.ID ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
                           อนุมัติการคืน
                         </button>
-                        <button onClick={() => handleReject(log)} disabled={processing === log.ID}
+                        <button onClick={() => handleRejectReturn(log)} disabled={processing === log.ID}
                           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
                           style={{ background: "#dc2626" }}>
                           <XCircle size={16} /> ปฏิเสธ

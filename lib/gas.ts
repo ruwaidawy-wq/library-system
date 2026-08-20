@@ -120,6 +120,8 @@ returnBook: (data: {
 
   getBorrowLog: () => gasRequest<BorrowLog[]>({ action: "getBorrowLog" }),
 
+  rejectBorrow: (borrowId: string) => gasRequest({ action: "rejectBorrow", borrowId }),
+
   updatePaymentStatus: (borrowId: string, paymentStatus: string) =>
     gasRequest({ action: "updatePaymentStatus", borrowId, paymentStatus }),
 };

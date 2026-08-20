@@ -63,6 +63,7 @@ if (e.postData) {
       case "approveBorrow":  result = approveBorrow(data); break;
       case "returnBook":     result = returnBook(data); break;
       case "getBorrowLog":   result = getBorrowLog(); break;
+      case "rejectBorrow":   result = rejectBorrow(data); break;
       case "checkIn":        result = checkIn(data); break;
       case "getCheckInsByRoom":   result = getCheckInsByRoom(data.roomNumber); break;
       case "getAllRoomsStats":    result = getAllRoomsStats(); break;
@@ -397,6 +398,48 @@ if (todayDate > dueDateOnly) {
 
 function getBorrowLog() {
   return { success: true, data: sheetToJSON(getSheet(SHEETS.BORROW_LOG)) };
+}
+
+// ปฏิเสธคำขอ "รอยืม" (แยกจาก returnBook's "rejected" ซึ่งใช้กับการปฏิเสธคำขอคืนเท่านั้น
+// เพราะหนังสือยังไม่เคยถูกยืมออกไปจริง ต้องคืนสถานะหนังสือเป็น "ว่างอยู่" ไม่ใช่ "ยืมอยู่")
+function rejectBorrow(data) {
+  const { borrowId } = data;
+  if (!borrowId) return { success: false, error: "ต้องระบุ Borrow ID" };
+
+  const sheet = getSheet(SHEETS.BORROW_LOG);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).trim());
+
+  const idIdx     = headers.indexOf("ID");
+  const statusIdx = headers.indexOf("สถานะ");
+  const bookIdIdx = headers.indexOf("รหัสหนังสือ");
+
+  let rowIndex = -1;
+  let rowData = null;
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === borrowId) {
+      rowIndex = i + 1;
+      rowData = allData[i];
+      break;
+    }
+  }
+  if (rowIndex === -1) return { success: false, error: "ไม่พบรายการยืม" };
+  if (rowData[statusIdx] !== "รอยืม")
+    return { success: false, error: "รายการนี้ไม่ได้อยู่ในสถานะรอยืม" };
+
+  sheet.getRange(rowIndex, statusIdx + 1).setValue("ถูกปฏิเสธ");
+
+  const bookId = rowData[bookIdIdx];
+  const bookSheet = getSheet(SHEETS.BOOKS);
+  const bookData = bookSheet.getDataRange().getValues();
+  for (let i = 1; i < bookData.length; i++) {
+    if (bookData[i][0] === bookId) {
+      bookSheet.getRange(i + 1, 3).setValue("ว่างอยู่");
+      break;
+    }
+  }
+
+  return { success: true };
 }
 
 function updatePaymentStatus(data) {
