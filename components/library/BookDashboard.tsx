@@ -3,11 +3,14 @@ import { useEffect, useState } from "react";
 import { Search, Loader2, RefreshCw, BookOpen, CheckCircle, Clock3, AlertTriangle } from "lucide-react";
 import { libraryApi, Book, BorrowLog } from "@/lib/gas";
 
+type StatusFilter = "all" | "available" | "borrowed" | "overdue";
+
 export default function BookDashboard() {
   const [books, setBooks] = useState<Book[]>([]);
   const [logs, setLogs] = useState<BorrowLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const load = async () => {
     setLoading(true);
@@ -38,9 +41,19 @@ export default function BookDashboard() {
     return log && log.สถานะ === "ยืมอยู่" && new Date(log.กำหนดคืน) < new Date();
   }).length;
 
-  const filteredBooks = books.filter(
-    (b) => b.ชื่อหนังสือ?.includes(query) || b.ID?.toLowerCase().includes(query.toLowerCase())
-  );
+  const isOverdueBook = (b: Book) => {
+    const log = activeLogByBook.get(b.ID);
+    return !!log && log.สถานะ === "ยืมอยู่" && new Date(log.กำหนดคืน) < new Date();
+  };
+
+  const filteredBooks = books
+    .filter((b) => b.ชื่อหนังสือ?.includes(query) || b.ID?.toLowerCase().includes(query.toLowerCase()))
+    .filter((b) => {
+      if (statusFilter === "available") return b["สถานะ"] === "ว่างอยู่";
+      if (statusFilter === "borrowed") return activeLogByBook.has(b.ID);
+      if (statusFilter === "overdue") return isOverdueBook(b);
+      return true;
+    });
 
   const statusColor = (status: string) => {
     if (status === "ว่างอยู่") return { bg: "#dcfce7", text: "#15803d" };
@@ -68,19 +81,24 @@ export default function BookDashboard() {
         <>
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-            {[
-              { label: "หนังสือทั้งหมด", value: total, color: "#1e3a5f", icon: <BookOpen size={18} /> },
-              { label: "ว่างอยู่", value: available, color: "#15803d", icon: <CheckCircle size={18} /> },
-              { label: "ถูกยืม/รอยืม", value: borrowed, color: "#1d4ed8", icon: <Clock3 size={18} /> },
-              { label: "เกินกำหนด", value: overdue, color: "#b91c1c", icon: <AlertTriangle size={18} /> },
-            ].map((s) => (
-              <div key={s.label} className="rounded-xl border border-slate-100 p-3">
+            {([
+              { key: "all", label: "หนังสือทั้งหมด", value: total, color: "#1e3a5f", icon: <BookOpen size={18} /> },
+              { key: "available", label: "ว่างอยู่", value: available, color: "#15803d", icon: <CheckCircle size={18} /> },
+              { key: "borrowed", label: "ถูกยืม/รอยืม", value: borrowed, color: "#1d4ed8", icon: <Clock3 size={18} /> },
+              { key: "overdue", label: "เกินกำหนด", value: overdue, color: "#b91c1c", icon: <AlertTriangle size={18} /> },
+            ] as { key: StatusFilter; label: string; value: number; color: string; icon: React.ReactNode }[]).map((s) => (
+              <button key={s.key} type="button"
+                onClick={() => setStatusFilter((prev) => (prev === s.key ? "all" : s.key))}
+                className="text-left rounded-xl border p-3 transition-all hover:shadow-md"
+                style={statusFilter === s.key
+                  ? { borderColor: s.color, background: `${s.color}0d`, boxShadow: `0 0 0 1px ${s.color}` }
+                  : { borderColor: "#f1f5f9" }}>
                 <div className="flex items-center gap-1.5 mb-1" style={{ color: s.color }}>
                   {s.icon}
                   <span className="text-xs font-medium text-slate-500">{s.label}</span>
                 </div>
                 <p className="text-2xl font-bold" style={{ color: s.color }}>{s.value}</p>
-              </div>
+              </button>
             ))}
           </div>
 
@@ -94,6 +112,18 @@ export default function BookDashboard() {
               onChange={(e) => setQuery(e.target.value)}
             />
           </div>
+
+          {statusFilter !== "all" && (
+            <div className="flex items-center justify-between mb-3 text-xs">
+              <span className="text-slate-500">
+                กำลังกรอง: {statusFilter === "available" ? "ว่างอยู่" : statusFilter === "borrowed" ? "ถูกยืม/รอยืม" : "เกินกำหนด"}
+              </span>
+              <button type="button" onClick={() => setStatusFilter("all")}
+                className="text-blue-600 hover:underline">
+                ล้างตัวกรอง
+              </button>
+            </div>
+          )}
 
           {/* Book list */}
           {filteredBooks.length === 0 ? (
