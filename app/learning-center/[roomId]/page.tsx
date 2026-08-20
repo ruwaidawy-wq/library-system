@@ -109,7 +109,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   async function handleCheckin(e: React.FormEvent) {
     e.preventDefault();
-    if (ciStudents.length === 0 || ciTeachers.length === 0) return;
+    if (ciStudents.length === 0 || ciTeachers.length === 0 || registryEntries.length === 0) return;
     setCiSubmitting(true);
     setCiError("");
     const res = await learningApi.checkIn({
@@ -176,11 +176,18 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       </div>
 
       {/* ปุ่มเข้าใช้ห้องนี้ */}
-      <button onClick={() => setShowCheckinForm(true)}
-        className="no-print w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold mb-4 hover:opacity-90 transition-all"
-        style={{ background: "linear-gradient(135deg, #065f46, #059669)" }}>
-        <LogIn size={18} /> เข้าใช้ห้องนี้
-      </button>
+      <div className="no-print mb-4">
+        <button onClick={() => setShowCheckinForm(true)} disabled={registryEntries.length === 0}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold hover:opacity-90 transition-all disabled:opacity-40 disabled:hover:opacity-40 disabled:cursor-not-allowed"
+          style={{ background: "linear-gradient(135deg, #065f46, #059669)" }}>
+          <LogIn size={18} /> เข้าใช้ห้องนี้
+        </button>
+        {registryEntries.length === 0 && (
+          <p className="text-xs text-amber-600 text-center mt-2">
+            ห้องนี้ยังไม่มีข้อมูลแหล่งเรียนรู้ กรุณาลงทะเบียนที่แท็บ &quot;ทะเบียนห้อง&quot; ก่อน จึงจะบันทึกการเข้าใช้ได้
+          </p>
+        )}
+      </div>
 
       {ciSuccess && (
         <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
@@ -257,7 +264,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                 )}
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={ciSubmitting || ciStudents.length === 0 || ciTeachers.length === 0}
+                <button type="submit" disabled={ciSubmitting || ciStudents.length === 0 || ciTeachers.length === 0 || registryEntries.length === 0}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
                   style={{ background: "#065f46" }}>
                   {ciSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
