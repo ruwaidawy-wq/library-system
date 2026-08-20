@@ -1,12 +1,14 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, LogIn, ImagePlus } from "lucide-react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, LogIn, ImagePlus, Printer } from "lucide-react";
 import Link from "next/link";
 import { learningApi, libraryApi, roomApi, CheckIn, RoomRegistryEntry, Teacher, Student } from "@/lib/gas";
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 import { compressImage } from "@/lib/imageUtils";
 import NameTagPicker from "@/components/NameTagPicker";
 import ZoomableImage from "@/components/ZoomableImage";
+
+const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 
 const ALL_ROOMS: Record<string, string> = {
   "room-1": "ห้องเรียน ๑", "room-2": "ห้องเรียน ๒", "room-3": "ห้องเรียน ๓",
@@ -136,6 +138,74 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     } else {
       setCiError(res.error || "บันทึกการเข้าใช้ไม่สำเร็จ");
     }
+  }
+
+  function handlePrintHistory() {
+    const rows = checkins.map((c, i) => {
+      const students = c.ชื่อนักเรียน ? c.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ") : "-";
+      const teachers = c.ชื่อครู ? c.ชื่อครู.split("\n").filter(Boolean).join(", ") : "-";
+      const d = c.Timestamp ? new Date(c.Timestamp) : null;
+      const dateStr = d ? d.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-";
+      const timeStr = d ? d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "-";
+      return `
+        <tr>
+          <td style="text-align:center">${i + 1}</td>
+          <td>${dateStr}</td>
+          <td style="text-align:center">${timeStr}</td>
+          <td>${students}</td>
+          <td>${teachers}</td>
+          <td>${c["แหล่งเรียนรู้ที่ใช้"] || "-"}</td>
+          <td>${c.สิ่งที่ได้รับ || "-"}</td>
+        </tr>
+      `;
+    }).join("");
+
+    const content = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+          body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #1a202c; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .header img { width: 64px; height: 64px; object-fit: contain; }
+          .header p { font-size: 14px; font-weight: 700; margin: 4px 0 0; }
+          .divider { border-top: 3px solid #065f46; border-bottom: 1px solid #065f46; margin: 12px 0 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
+          thead td { background: #ecfdf5; font-weight: 700; text-align: center; }
+          .footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${LOGO_URL}" alt="logo" />
+          <p>ประวัติการเข้าใช้ ${roomName}</p>
+          <p>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
+        </div>
+        <div class="divider"></div>
+        <table>
+          <thead>
+            <tr>
+              <td style="width:6%">ลำดับ</td>
+              <td style="width:16%">วันที่</td>
+              <td style="width:10%">เวลา</td>
+              <td style="width:20%">ชื่อนักเรียน</td>
+              <td style="width:18%">ชื่อครู</td>
+              <td style="width:16%">แหล่งเรียนรู้ที่ใช้</td>
+              <td style="width:14%">สิ่งที่ได้รับ</td>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <div class="footer">พิมพ์วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) { setTimeout(() => { w.print(); }, 800); }
   }
 
   const todayCheckins = checkins.filter(c => {
@@ -357,9 +427,17 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
             </div>
           )}
 
-          <h2 className="font-semibold text-lg mb-4" style={{ color: "#065f46" }}>
-            ประวัติการเข้าใช้ ({checkins.length} ครั้ง)
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
+              ประวัติการเข้าใช้ ({checkins.length} ครั้ง)
+            </h2>
+            {checkins.length > 0 && (
+              <button type="button" onClick={handlePrintHistory}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-green-400 text-xs">
+                <Printer size={14} /> พิมพ์
+              </button>
+            )}
+          </div>
           {checkins.length === 0 ? (
             <p className="text-slate-400 text-sm text-center py-8">ยังไม่มีการเข้าใช้</p>
           ) : (
