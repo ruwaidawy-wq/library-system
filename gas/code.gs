@@ -127,6 +127,29 @@ function generateID(prefix) {
   return prefix + "_" + new Date().getTime();
 }
 
+// ============================================================
+// CACHE (เร่งความเร็วหน้าเว็บ — ข้อมูลที่แทบไม่เปลี่ยนบ่อย เช่น รายชื่อครู/นักเรียน/
+// หนังสือ/ทะเบียนแหล่งเรียนรู้ ไม่ต้องอ่านทั้งชีตใหม่ทุก request เก็บผลไว้ใน
+// CacheService สูงสุด 6 ชม. ต่อ 1 คีย์ทั่วทั้งสคริปต์ (ใช้ร่วมกันทุกผู้ใช้)
+// ============================================================
+
+function getCached(key, ttlSeconds, fetcher) {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(key);
+  if (cached) return JSON.parse(cached);
+  const data = fetcher();
+  try {
+    cache.put(key, JSON.stringify(data), ttlSeconds);
+  } catch (e) {
+    // ข้อมูลอาจใหญ่เกิน 100KB ต่อคีย์ ก็แค่ข้ามการ cache รอบนี้ไป ไม่ต้องทำให้ request ล้มเหลว
+  }
+  return data;
+}
+
+function invalidateCache(key) {
+  CacheService.getScriptCache().remove(key);
+}
+
 // คืนเลขคอลัมน์ (1-indexed) ของหัวตารางชื่อ headerName ในชีต ถ้ายังไม่มีคอลัมน์นี้จะสร้างเพิ่มให้อัตโนมัติ
 function getOrCreateColumn(sheet, headerName) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0].map(h => String(h).trim());
@@ -183,15 +206,15 @@ function processImageField(value, prefix) {
 // ============================================================
 
 function getTeachers() {
-  return { success: true, data: sheetToJSON(getSheet(SHEETS.TEACHERS)) };
+  return { success: true, data: getCached("teachers", 300, () => sheetToJSON(getSheet(SHEETS.TEACHERS))) };
 }
 
 function getStudents() {
-  return { success: true, data: sheetToJSON(getSheet(SHEETS.STUDENTS)) };
+  return { success: true, data: getCached("students", 300, () => sheetToJSON(getSheet(SHEETS.STUDENTS))) };
 }
 
 function getBooks() {
-  return { success: true, data: sheetToJSON(getSheet(SHEETS.BOOKS)) };
+  return { success: true, data: getCached("books", 300, () => sheetToJSON(getSheet(SHEETS.BOOKS))) };
 }
 
 function checkOverdue(teacherName) {
@@ -246,6 +269,7 @@ logSheet.appendRow([
       break;
     }
   }
+  invalidateCache("books");
 
   sendLineNotify(`📚 คำขอยืมหนังสือใหม่\nครู: ${teacherName}\nหนังสือ: ${book["ชื่อหนังสือ"]} (${bookId})\nกำหนดคืน: ${dueDate}`);
   return { success: true, borrowId: id };
@@ -289,6 +313,7 @@ function approveBorrow(data) {
       break;
     }
   }
+  invalidateCache("books");
 
   const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
   const dueDate = rowData[headers.indexOf("กำหนดคืน")];
@@ -386,6 +411,7 @@ if (todayDate > dueDateOnly) {
         break;
       }
     }
+    invalidateCache("books");
   }
 
   const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
@@ -438,6 +464,7 @@ function rejectBorrow(data) {
       break;
     }
   }
+  invalidateCache("books");
 
   return { success: true };
 }
@@ -706,14 +733,18 @@ function searchBook(query) {
 // ROOM REGISTRY (ทะเบียนแหล่งเรียนรู้ / มุมการเรียนรู้)
 // ============================================================
 
+function getRoomRegistryData() {
+  return getCached("room_registry", 300, () => sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY)));
+}
+
 function getRoomRegistryByRoom(roomId) {
   if (!roomId) return { success: false, error: "ต้องระบุห้อง" };
-  const data = sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY));
+  const data = getRoomRegistryData();
   return { success: true, data: data.filter(row => String(row["RoomID"]) === String(roomId)) };
 }
 
 function getRoomRegistry() {
-  return { success: true, data: sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY)) };
+  return { success: true, data: getRoomRegistryData() };
 }
 
 function addRoomRegistryEntry(data) {
@@ -725,6 +756,7 @@ function addRoomRegistryEntry(data) {
     id, roomId, name || "", type || "", description || "", equipment || "", responsible || "", established || "", processImageField(imageUrl, "registry"),
     status || "รออนุมัติ"
   ]);
+  invalidateCache("room_registry");
   return { success: true, id };
 }
 
@@ -739,6 +771,7 @@ function approveRoomRegistryEntry(id) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusIdx + 1).setValue("อนุมัติแล้ว");
+      invalidateCache("room_registry");
       return { success: true };
     }
   }
@@ -764,6 +797,7 @@ function updateRoomRegistryEntry(data) {
       sheet.getRange(rowIndex, headers.indexOf("ผู้รับผิดชอบ") + 1).setValue(responsible || "");
       sheet.getRange(rowIndex, headers.indexOf("วันที่จัดตั้ง") + 1).setValue(established || "");
       sheet.getRange(rowIndex, headers.indexOf("รูปภาพURL") + 1).setValue(processImageField(imageUrl, "registry"));
+      invalidateCache("room_registry");
       return { success: true };
     }
   }
@@ -780,6 +814,7 @@ function deleteRoomRegistryEntry(id) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.deleteRow(i + 1);
+      invalidateCache("room_registry");
       return { success: true };
     }
   }
