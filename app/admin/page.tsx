@@ -4,6 +4,7 @@ import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, Ale
 import { libraryApi, activityApi, roomApi, BorrowLog, Activity, RoomRegistryEntry } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import LibraryStatsForm from "@/components/library/LibraryStatsForm";
+import { escapeHtml } from "@/lib/htmlUtils";
 
 const ADMIN_PASSWORD = "admin1234";
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
@@ -245,52 +246,52 @@ if (data.success) {
         <table>
           <tr>
             <td class="label">วันที่บันทึก</td>
-            <td>${act.วันที่ ? new Date(act.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}${act.เวลา ? ` เวลา ${act.เวลา} น.` : ""}</td>
+            <td>${act.วันที่ ? new Date(act.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}${act.เวลา ? ` เวลา ${escapeHtml(act.เวลา)} น.` : ""}</td>
             <td class="label">ห้องเรียน</td>
-            <td>${act.ห้องเรียน || "-"}</td>
+            <td>${escapeHtml(act.ห้องเรียน) || "-"}</td>
           </tr>
           ${act.ประเภทการเข้าใช้ ? `
           <tr>
             <td class="label">ประเภทการเข้าใช้</td>
-            <td colspan="3">${act.ประเภทการเข้าใช้}</td>
+            <td colspan="3">${escapeHtml(act.ประเภทการเข้าใช้)}</td>
           </tr>` : ""}
           <tr>
             <td class="label">รายชื่อนักเรียน</td>
-            <td colspan="3">${(act.รายชื่อนักเรียน || "-").replace(/\n/g, "<br>")}</td>
+            <td colspan="3">${escapeHtml(act.รายชื่อนักเรียน || "-").replace(/\n/g, "<br>")}</td>
           </tr>
           <tr>
             <td class="label">ครู/ผู้ดูแล</td>
-            <td colspan="3">${(act.รายชื่อครู || "-").replace(/\n/g, "<br>")}</td>
+            <td colspan="3">${escapeHtml(act.รายชื่อครู || "-").replace(/\n/g, "<br>")}</td>
           </tr>
           <tr>
             <td class="label">แหล่งเรียนรู้</td>
-            <td colspan="3">${act.แหล่งเรียนรู้ || "-"}</td>
+            <td colspan="3">${escapeHtml(act.แหล่งเรียนรู้) || "-"}</td>
           </tr>
           <tr>
             <td class="label">ลักษณะกิจกรรม</td>
-            <td colspan="3">${(act.ลักษณะกิจกรรม || "-").replace(/\n/g, "<br>")}</td>
+            <td colspan="3">${escapeHtml(act.ลักษณะกิจกรรม || "-").replace(/\n/g, "<br>")}</td>
           </tr>
           <tr>
             <td class="label">สาระที่ได้รับ</td>
-            <td colspan="3">${(act.สาระที่ได้รับ || "-").replace(/\n/g, "<br>")}</td>
+            <td colspan="3">${escapeHtml(act.สาระที่ได้รับ || "-").replace(/\n/g, "<br>")}</td>
           </tr>
           ${act.ImageURL ? `
           <tr>
             <td class="label">ภาพกิจกรรม</td>
             <td colspan="3">
               <div class="activity-imgs">
-                ${act.ImageURL.split(",").filter(Boolean).map((url) => `<img class="activity-img" src="${url}" alt="กิจกรรม" />`).join("")}
+                ${act.ImageURL.split(",").filter(Boolean).map((url) => `<img class="activity-img" src="${escapeHtml(url)}" alt="กิจกรรม" />`).join("")}
               </div>
             </td>
           </tr>` : ""}
           <tr>
             <td class="label">ผู้บันทึก</td>
-            <td>${act.ผู้บันทึก || "-"}<br/><small>${act.ตำแหน่ง || ""}</small></td>
+            <td>${escapeHtml(act.ผู้บันทึก) || "-"}<br/><small>${escapeHtml(act.ตำแหน่ง)}</small></td>
             <td class="label" style="text-align:center;">ลายมือชื่อผู้บันทึก</td>
             <td class="sig-box">
-              ${act.Signature ? `<img class="sig-img" src="${act.Signature}" alt="ลายเซ็น" /><br>` : "<br><br>"}
-              <small>(${act.ผู้บันทึก || ""})</small><br>
-              <small>${act.ตำแหน่ง || ""}</small>
+              ${act.Signature ? `<img class="sig-img" src="${escapeHtml(act.Signature)}" alt="ลายเซ็น" /><br>` : "<br><br>"}
+              <small>(${escapeHtml(act.ผู้บันทึก)})</small><br>
+              <small>${escapeHtml(act.ตำแหน่ง)}</small>
             </td>
           </tr>
         </table>
@@ -313,7 +314,7 @@ if (data.success) {
               const total = (s.scores || []).reduce((a, b) => a + b, 0);
               const result = total >= 3 ? "ผ่านเกณฑ์" : "ควรได้รับการกระตุ้น";
               return `
-                <p style="margin:10px 0 4px;font-size:13px;"><b>${s.name || "-"}</b> ${s.grade ? `(${s.grade})` : ""}</p>
+                <p style="margin:10px 0 4px;font-size:13px;"><b>${escapeHtml(s.name) || "-"}</b> ${s.grade ? `(${escapeHtml(s.grade)})` : ""}</p>
                 <table style="font-size:12px;">
                   <tr><td class="label" style="width:36%">รายการพฤติกรรม</td><td class="label" style="width:12%;text-align:center">มี (๑)</td><td class="label" style="width:14%;text-align:center">ไม่มี (๐)</td><td class="label" style="width:38%">บันทึกเพิ่มเติม</td></tr>
                   ${items.map((item, i) => `
@@ -321,7 +322,7 @@ if (data.success) {
                       <td>${i + 1}. ${item}</td>
                       <td style="text-align:center">${s.scores && s.scores[i] === 1 ? "✓" : ""}</td>
                       <td style="text-align:center">${s.scores && s.scores[i] === 0 ? "✓" : ""}</td>
-                      <td>${(s.notes && s.notes[i]) || ""}</td>
+                      <td>${escapeHtml(s.notes && s.notes[i])}</td>
                     </tr>
                   `).join("")}
                   <tr><td class="label" colspan="3" style="text-align:center">รวมคะแนน</td><td class="label">${total} / ${items.length}</td></tr>
@@ -772,7 +773,11 @@ if (data.success) {
                     {selectedActivity.ImageURL && (
                       <div>
                         <p className="font-semibold text-slate-600 mb-1">ภาพกิจกรรม</p>
-                        <img src={selectedActivity.ImageURL} alt="activity" className="rounded-xl w-full object-cover max-h-48" />
+                        <div className="grid grid-cols-3 gap-2">
+                          {selectedActivity.ImageURL.split(",").filter(Boolean).map((url, i) => (
+                            <ZoomableImage key={i} src={url} alt="activity" className="aspect-square rounded-xl w-full object-cover" />
+                          ))}
+                        </div>
                       </div>
                     )}
                     {selectedActivity.Signature && (
@@ -853,7 +858,7 @@ if (data.success) {
                     </div>
                   </div>
                   {act.ImageURL && (
-                    <img src={act.ImageURL} alt="activity" className="w-full h-28 object-cover rounded-xl mt-2" />
+                    <img src={act.ImageURL.split(",")[0]} alt="activity" className="w-full h-28 object-cover rounded-xl mt-2" />
                   )}
                 </div>
               ))}

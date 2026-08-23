@@ -7,6 +7,7 @@ import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 import { compressImage } from "@/lib/imageUtils";
 import NameTagPicker from "@/components/NameTagPicker";
 import ZoomableImage from "@/components/ZoomableImage";
+import { escapeHtml } from "@/lib/htmlUtils";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 
@@ -142,14 +143,14 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   function handlePrintHistory() {
     const rows = checkins.map((c, i) => {
-      const students = c.ชื่อนักเรียน ? c.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ") : "-";
-      const teachers = c.ชื่อครู ? c.ชื่อครู.split("\n").filter(Boolean).join(", ") : "-";
+      const students = c.ชื่อนักเรียน ? escapeHtml(c.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ")) : "-";
+      const teachers = c.ชื่อครู ? escapeHtml(c.ชื่อครู.split("\n").filter(Boolean).join(", ")) : "-";
       const d = c.Timestamp ? new Date(c.Timestamp) : null;
       const dateStr = d ? d.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-";
       const timeStr = d ? d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "-";
       const photos = c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : [];
       const photosHtml = photos.length > 0
-        ? `<div class="row-imgs">${photos.map((url) => `<img class="row-img" src="${url}" alt="" />`).join("")}</div>`
+        ? `<div class="row-imgs">${photos.map((url) => `<img class="row-img" src="${escapeHtml(url)}" alt="" />`).join("")}</div>`
         : "-";
       return `
         <tr>
@@ -158,8 +159,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           <td style="text-align:center">${timeStr}</td>
           <td>${students}</td>
           <td>${teachers}</td>
-          <td>${c["แหล่งเรียนรู้ที่ใช้"] || "-"}</td>
-          <td>${c.สิ่งที่ได้รับ || "-"}</td>
+          <td>${escapeHtml(c["แหล่งเรียนรู้ที่ใช้"]) || "-"}</td>
+          <td>${escapeHtml(c.สิ่งที่ได้รับ) || "-"}</td>
           <td>${photosHtml}</td>
         </tr>
       `;

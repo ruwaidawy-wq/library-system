@@ -6,6 +6,7 @@ import { compressImage } from "@/lib/imageUtils";
 import SignaturePad from "@/components/SignaturePad";
 import NameSearchSelect from "@/components/NameSearchSelect";
 import NameTagPicker from "@/components/NameTagPicker";
+import { escapeHtml } from "@/lib/htmlUtils";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 const LIBRARY_ROOM_KEY = "งานห้องสมุด";
@@ -202,10 +203,10 @@ export default function LibraryActivityForm() {
       <tr>
         <td style="text-align:center">${i + 1}</td>
         <td>${a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}</td>
-        <td style="text-align:center">${formatTime(a.เวลา)}</td>
-        <td>${a.ผู้บันทึก || "-"}</td>
-        <td>${a.ตำแหน่ง || "-"}</td>
-        <td style="text-align:center">${a.Signature ? `<img src="${a.Signature}" alt="ลายเซ็น" style="height:40px;object-fit:contain" />` : "-"}</td>
+        <td style="text-align:center">${escapeHtml(formatTime(a.เวลา))}</td>
+        <td>${escapeHtml(a.ผู้บันทึก) || "-"}</td>
+        <td>${escapeHtml(a.ตำแหน่ง) || "-"}</td>
+        <td style="text-align:center">${a.Signature ? `<img src="${escapeHtml(a.Signature)}" alt="ลายเซ็น" style="height:40px;object-fit:contain" />` : "-"}</td>
       </tr>
     `).join("");
 
