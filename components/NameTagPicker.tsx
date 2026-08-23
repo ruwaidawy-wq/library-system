@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, Plus } from "lucide-react";
 
 export default function NameTagPicker({
   value, onChange, options, placeholder, accentColor = "#065f46",
@@ -14,16 +14,27 @@ export default function NameTagPicker({
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
 
+  const trimmedQuery = query.trim();
   const filtered = options.filter((o) => o.includes(query) && !value.includes(o));
+  const exactMatch = options.some((o) => o === trimmedQuery);
+  const canAddCustom = trimmedQuery.length > 0 && !exactMatch && !value.includes(trimmedQuery);
 
   function addName(name: string) {
-    onChange([...value, name]);
+    if (!value.includes(name)) onChange([...value, name]);
     setQuery("");
     setOpen(false);
   }
 
   function removeName(name: string) {
     onChange(value.filter((n) => n !== name));
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      if (canAddCustom) addName(trimmedQuery);
+      else if (filtered.length > 0) addName(filtered[0]);
+    }
   }
 
   return (
@@ -50,8 +61,9 @@ export default function NameTagPicker({
           onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 200)}
+          onKeyDown={handleKeyDown}
         />
-        {open && filtered.length > 0 && (
+        {open && (filtered.length > 0 || canAddCustom) && (
           <div className="absolute z-10 left-0 right-0 border border-slate-200 rounded-xl shadow-lg overflow-hidden max-h-48 overflow-y-auto mt-1 bg-white">
             {filtered.map((name) => (
               <button key={name} type="button"
@@ -60,6 +72,14 @@ export default function NameTagPicker({
                 {name}
               </button>
             ))}
+            {canAddCustom && (
+              <button type="button"
+                onMouseDown={() => addName(trimmedQuery)}
+                className="w-full flex items-center gap-1.5 text-left px-4 py-2 hover:bg-blue-50 text-sm transition-colors border-t border-slate-100"
+                style={{ color: accentColor }}>
+                <Plus size={14} /> เพิ่ม &quot;{trimmedQuery}&quot;
+              </button>
+            )}
           </div>
         )}
       </div>
