@@ -228,7 +228,8 @@ if (data.success) {
           td { border: 1px solid #000; padding: 7px 10px; vertical-align: top; }
           .label { background: #f0f4f8; font-weight: 600; width: 28%; }
           .sig-box { text-align: center; height: 80px; vertical-align: middle; }
-          img.activity-img { max-width: 100%; max-height: 180px; object-fit: cover; border-radius: 6px; }
+          .activity-imgs { display: flex; flex-wrap: wrap; gap: 8px; }
+          img.activity-img { width: 140px; height: 140px; object-fit: cover; border-radius: 6px; }
           img.sig-img { height: 55px; object-fit: contain; }
           .footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         </style>
@@ -276,7 +277,11 @@ if (data.success) {
           ${act.ImageURL ? `
           <tr>
             <td class="label">ภาพกิจกรรม</td>
-            <td colspan="3"><img class="activity-img" src="${act.ImageURL}" alt="กิจกรรม" /></td>
+            <td colspan="3">
+              <div class="activity-imgs">
+                ${act.ImageURL.split(",").filter(Boolean).map((url) => `<img class="activity-img" src="${url}" alt="กิจกรรม" />`).join("")}
+              </div>
+            </td>
           </tr>` : ""}
           <tr>
             <td class="label">ผู้บันทึก</td>

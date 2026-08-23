@@ -147,6 +147,10 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       const d = c.Timestamp ? new Date(c.Timestamp) : null;
       const dateStr = d ? d.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-";
       const timeStr = d ? d.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }) : "-";
+      const photos = c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : [];
+      const photosHtml = photos.length > 0
+        ? `<div class="row-imgs">${photos.map((url) => `<img class="row-img" src="${url}" alt="" />`).join("")}</div>`
+        : "-";
       return `
         <tr>
           <td style="text-align:center">${i + 1}</td>
@@ -156,6 +160,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           <td>${teachers}</td>
           <td>${c["แหล่งเรียนรู้ที่ใช้"] || "-"}</td>
           <td>${c.สิ่งที่ได้รับ || "-"}</td>
+          <td>${photosHtml}</td>
         </tr>
       `;
     }).join("");
@@ -174,6 +179,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
           thead td { background: #ecfdf5; font-weight: 700; text-align: center; }
+          .row-imgs { display: flex; flex-wrap: wrap; gap: 4px; }
+          img.row-img { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; }
           .footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         </style>
       </head>
@@ -187,13 +194,14 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         <table>
           <thead>
             <tr>
-              <td style="width:6%">ลำดับ</td>
-              <td style="width:16%">วันที่</td>
-              <td style="width:10%">เวลา</td>
-              <td style="width:20%">ชื่อนักเรียน</td>
-              <td style="width:18%">ชื่อครู</td>
-              <td style="width:16%">แหล่งเรียนรู้ที่ใช้</td>
-              <td style="width:14%">สิ่งที่ได้รับ</td>
+              <td style="width:5%">ลำดับ</td>
+              <td style="width:13%">วันที่</td>
+              <td style="width:8%">เวลา</td>
+              <td style="width:16%">ชื่อนักเรียน</td>
+              <td style="width:14%">ชื่อครู</td>
+              <td style="width:12%">แหล่งเรียนรู้ที่ใช้</td>
+              <td style="width:12%">สิ่งที่ได้รับ</td>
+              <td style="width:20%">รูปภาพ</td>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
