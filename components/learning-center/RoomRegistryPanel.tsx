@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Edit2, Trash2, Save, X, Camera, Loader2, CheckCircle } from "lucide-react";
-import { roomApi, RoomRegistryEntry } from "@/lib/gas";
+import { roomApi, libraryApi, RoomRegistryEntry, Teacher } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
+import NameTagPicker from "@/components/NameTagPicker";
 
 const ROOM_TYPES = [
   "ห้องเรียน", "ห้องบำบัด", "ห้องกิจกรรม", "ห้องดนตรี",
@@ -26,10 +27,13 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
   const [formType, setFormType] = useState("");
   const [formDesc, setFormDesc] = useState("");
   const [formEquip, setFormEquip] = useState("");
-  const [formResponsible, setFormResponsible] = useState("");
+  const [formResponsibleList, setFormResponsibleList] = useState<string[]>([]);
   const [formEstablished, setFormEstablished] = useState("");
   const [formPhotos, setFormPhotos] = useState<string[]>([]);
+  const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
+
+  const teacherNames = teacherRoster.map((t) => t["ชื่อ-นามสกุล"]);
 
   async function load() {
     setLoading(true);
@@ -40,13 +44,19 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
 
   useEffect(() => { load(); }, [roomId]);
 
+  useEffect(() => {
+    libraryApi.getTeachers().then((res) => {
+      if (res.success && res.data) setTeacherRoster(res.data);
+    });
+  }, []);
+
   function resetForm() {
     setEditingId(null);
     setFormName("");
     setFormType("");
     setFormDesc("");
     setFormEquip("");
-    setFormResponsible("");
+    setFormResponsibleList([]);
     setFormEstablished("");
     setFormPhotos([]);
   }
@@ -62,7 +72,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
     setFormType(entry.ประเภท || "");
     setFormDesc(entry.รายละเอียด || "");
     setFormEquip(entry["อุปกรณ์/สื่อ"] || "");
-    setFormResponsible(entry.ผู้รับผิดชอบ || "");
+    setFormResponsibleList(entry.ผู้รับผิดชอบ ? entry.ผู้รับผิดชอบ.split("\n").filter(Boolean) : []);
     setFormEstablished(entry.วันที่จัดตั้ง || "");
     setFormPhotos(entry.รูปภาพURL ? entry.รูปภาพURL.split(",").filter(Boolean) : []);
     setShowForm(true);
@@ -85,7 +95,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
       type: formType,
       description: formDesc,
       equipment: formEquip,
-      responsible: formResponsible,
+      responsible: formResponsibleList.join("\n"),
       established: formEstablished,
       imageUrl: formPhotos.join("|||"),
     };
@@ -184,10 +194,9 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">ผู้รับผิดชอบ (ระบุได้หลายคน บรรทัดละ 1 คน)</label>
-            <textarea value={formResponsible} onChange={e => setFormResponsible(e.target.value)}
-              rows={2} placeholder="ชื่อผู้รับผิดชอบคนที่ 1&#10;ชื่อผู้รับผิดชอบคนที่ 2"
-              className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
+            <label className="block text-sm font-medium text-slate-500 mb-1">ผู้รับผิดชอบ (เลือกได้หลายคน)</label>
+            <NameTagPicker value={formResponsibleList} onChange={setFormResponsibleList} options={teacherNames}
+              placeholder="พิมพ์เพื่อค้นหาชื่อผู้รับผิดชอบ..." accentColor="#065f46" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-500 mb-1">วันที่จัดตั้ง</label>
