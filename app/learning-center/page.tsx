@@ -50,7 +50,7 @@ const VISIT_POINTS = 1;
 type RoomRank = { id: string; name: string; registryCount: number; visitCount: number; score: number };
 
 function RankingBoard({
-  title, icon, items, getValue, unit, getSubtext,
+  title, icon, items, getValue, unit, getSubtext, description,
 }: {
   title: string;
   icon: React.ReactNode;
@@ -58,6 +58,7 @@ function RankingBoard({
   getValue: (r: RoomRank) => number;
   unit: string;
   getSubtext?: (r: RoomRank) => string;
+  description?: string;
 }) {
   const [showAll, setShowAll] = useState(false);
   if (items.length === 0) return null;
@@ -67,10 +68,11 @@ function RankingBoard({
 
   return (
     <div className="bg-white rounded-2xl shadow p-5 mb-6">
-      <div className="flex items-center gap-2 mb-4">
+      <div className={`flex items-center gap-2 ${description ? "mb-1" : "mb-4"}`}>
         {icon}
         <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>{title}</h2>
       </div>
+      {description && <p className="text-xs text-slate-400 mb-4">{description}</p>}
       <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
         {top5.map((entry, i) => (
           <Link
@@ -227,6 +229,7 @@ export default function LearningCenterPage() {
 
           <RankingBoard
             title="อันดับคะแนนรวม"
+            description={`คำนวณจาก 1 แหล่งเรียนรู้ = ${REGISTRY_POINTS} คะแนน, เข้าใช้ 1 ครั้ง = ${VISIT_POINTS} คะแนน`}
             icon={<Award size={20} style={{ color: "#065f46" }} />}
             items={byScore}
             getValue={(r) => r.score}
