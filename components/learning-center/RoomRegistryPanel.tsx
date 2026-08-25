@@ -283,24 +283,22 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
                       </span>
                     )}
                   </div>
-                  {isAdminMode && (
-                    <div className="flex gap-1">
-                      {isPending && (
-                        <button onClick={() => handleApprove(entry)}
-                          className="p-1.5 rounded-lg text-green-500 hover:bg-green-50 hover:text-green-600">
-                          <CheckCircle size={14} />
-                        </button>
-                      )}
-                      <button onClick={() => openEdit(entry)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600">
-                        <Edit2 size={14} />
+                  <div className="flex gap-1">
+                    {isAdminMode && isPending && (
+                      <button onClick={() => handleApprove(entry)}
+                        className="p-1.5 rounded-lg text-green-500 hover:bg-green-50 hover:text-green-600">
+                        <CheckCircle size={14} />
                       </button>
-                      <button onClick={() => handleDelete(entry)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  )}
+                    )}
+                    <button onClick={() => openEdit(entry)}
+                      className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600">
+                      <Edit2 size={14} />
+                    </button>
+                    <button onClick={() => handleDelete(entry)}
+                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
 
                 {photos.length > 0 && (
