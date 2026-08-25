@@ -103,8 +103,17 @@ function doOptions(e) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+// เปิดสเปรดชีตครั้งเดียวต่อ 1 request แล้ว cache ไว้ในตัวแปรนี้ (ไม่ใช่ CacheService)
+// เพราะบาง action เช่น approveBorrow ต้องเปิดหลายชีตในคำขอเดียว (Borrow_Log แล้วก็ Books)
+// เปิดซ้ำทุกครั้งจะเสียเวลาโดยไม่จำเป็น
+let _spreadsheet = null;
+function getSpreadsheet() {
+  if (!_spreadsheet) _spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
+  return _spreadsheet;
+}
+
 function getSheet(name) {
-  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(name);
+  const sheet = getSpreadsheet().getSheetByName(name);
   if (!sheet) {
     throw new Error(`ไม่พบชีตชื่อ "${name}" ในสเปรดชีต (SPREADSHEET_ID: ${SPREADSHEET_ID}) — ตรวจสอบว่าชื่อแท็บตรงเป๊ะ (ตัวพิมพ์เล็ก/ใหญ่ ขีดล่าง) และสเปรดชีตนี้คือไฟล์เดียวกับที่ deploy ไว้`);
   }
@@ -148,6 +157,20 @@ function getCached(key, ttlSeconds, fetcher) {
 
 function invalidateCache(key) {
   CacheService.getScriptCache().remove(key);
+}
+
+// ชีตที่เขียนบ่อยกว่า (Borrow_Log/Activities/CheckIn_Log) ใช้ TTL สั้นกว่า Teachers/Books
+// เพราะ invalidateCache ถูกเรียกทุกจุดที่เขียนอยู่แล้ว ค่านี้แค่กันคำขออ่านรัวๆ ไม่ให้สแกนทั้งชีตซ้ำ
+function getBorrowLogData() {
+  return getCached("borrow_log", 120, () => sheetToJSON(getSheet(SHEETS.BORROW_LOG)));
+}
+
+function getActivitiesData() {
+  return getCached("activities", 120, () => sheetToJSON(getSheet(SHEETS.ACTIVITIES)));
+}
+
+function getCheckInLogData() {
+  return getCached("checkin_log", 120, () => sheetToJSON(getSheet(SHEETS.CHECKIN_LOG)));
 }
 
 // คืนเลขคอลัมน์ (1-indexed) ของหัวตารางชื่อ headerName ในชีต ถ้ายังไม่มีคอลัมน์นี้จะสร้างเพิ่มให้อัตโนมัติ
@@ -219,7 +242,7 @@ function getBooks() {
 
 function checkOverdue(teacherName) {
   if (!teacherName) return { success: false, error: "ต้องระบุชื่อครู" };
-  const data = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
+  const data = getBorrowLogData();
   const today = new Date();
   const overdueBooks = data.filter(row =>
     row["ชื่อผู้ยืม"] === teacherName &&
@@ -270,6 +293,7 @@ logSheet.appendRow([
     }
   }
   invalidateCache("books");
+  invalidateCache("borrow_log");
 
   sendLineNotify(`📚 คำขอยืมหนังสือใหม่\nครู: ${teacherName}\nหนังสือ: ${book["ชื่อหนังสือ"]} (${bookId})\nกำหนดคืน: ${dueDate}`);
   return { success: true, borrowId: id };
@@ -314,6 +338,7 @@ function approveBorrow(data) {
     }
   }
   invalidateCache("books");
+  invalidateCache("borrow_log");
 
   const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
   const dueDate = rowData[headers.indexOf("กำหนดคืน")];
@@ -361,12 +386,14 @@ function returnBook(data) {
     if (data.actualReturnDate) {
       sheet.getRange(rowIndex, returnDateIdx + 1).setValue(new Date(data.actualReturnDate));
     }
+    invalidateCache("borrow_log");
     return { success: true, fine: 0 };
   }
 
   if (returnStatus === "rejected") {
     // Admin ปฏิเสธ — กลับเป็นยืมอยู่
     sheet.getRange(rowIndex, statusIdx + 1).setValue("ยืมอยู่");
+    invalidateCache("borrow_log");
     return { success: true, fine: 0 };
   }
 
@@ -398,6 +425,7 @@ if (todayDate > dueDateOnly) {
   sheet.getRange(rowIndex, returnDateIdx + 1).setValue(today);
   sheet.getRange(rowIndex, statusIdx + 1).setValue(newStatus);
   sheet.getRange(rowIndex, fineIdx + 1).setValue(fine);
+  invalidateCache("borrow_log");
 
   // อัปเดตสถานะหนังสือ
   if (returnStatus !== "lost") {
@@ -423,7 +451,7 @@ if (todayDate > dueDateOnly) {
 }
 
 function getBorrowLog() {
-  return { success: true, data: sheetToJSON(getSheet(SHEETS.BORROW_LOG)) };
+  return { success: true, data: getBorrowLogData() };
 }
 
 // ปฏิเสธคำขอ "รอยืม" (แยกจาก returnBook's "rejected" ซึ่งใช้กับการปฏิเสธคำขอคืนเท่านั้น
@@ -465,6 +493,7 @@ function rejectBorrow(data) {
     }
   }
   invalidateCache("books");
+  invalidateCache("borrow_log");
 
   return { success: true };
 }
@@ -487,6 +516,7 @@ function updatePaymentStatus(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === borrowId) {
       sheet.getRange(i + 1, payIdx + 1).setValue(paymentStatus);
+      invalidateCache("borrow_log");
       return { success: true };
     }
   }
@@ -505,17 +535,18 @@ function checkIn(data) {
   // อนุญาตให้ระบุวัน-เวลาเข้าใช้เอง (บันทึกย้อนหลัง) ถ้าไม่ระบุมาให้ใช้เวลาปัจจุบัน
   const ts = timestamp ? new Date(timestamp) : new Date();
   sheet.appendRow([roomNumber, teacherName, studentName, received || "", ts, processImageField(imageUrl, "checkin"), corner || ""]);
+  invalidateCache("checkin_log");
   return { success: true, timestamp: ts.toISOString() };
 }
 
 function getCheckInsByRoom(roomNumber) {
   if (!roomNumber) return { success: false, error: "ต้องระบุห้องเรียน" };
-  const data = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+  const data = getCheckInLogData();
   return { success: true, data: data.filter(row => String(row["RoomNumber"]) === String(roomNumber)) };
 }
 
 function getAllRoomsStats() {
-  const data = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+  const data = getCheckInLogData();
   const stats = {};
   data.forEach(row => {
     const room = row["RoomNumber"];
@@ -557,6 +588,7 @@ function addActivity(data) {
     const timeCol = getOrCreateColumn(sheet, "เวลา");
     sheet.getRange(rowIndex, timeCol).setNumberFormat("@").setValue(time);
   }
+  invalidateCache("activities");
 
   // แจ้ง Line Notify ไปยัง Admin
   sendLineNotify(`📋 บันทึกกิจกรรมใหม่\nห้อง: ${roomNumber}\nผู้บันทึก: ${recorder} (${position})\nกิจกรรม: ${activityDetail}`);
@@ -565,7 +597,7 @@ function addActivity(data) {
 }
 
 function getActivities() {
-  return { success: true, data: sheetToJSON(getSheet(SHEETS.ACTIVITIES)) };
+  return { success: true, data: getActivitiesData() };
 }
 
 function updateActivityStatus(data) {
@@ -579,6 +611,7 @@ function updateActivityStatus(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusIdx + 1).setValue(status);
+      invalidateCache("activities");
       return { success: true };
     }
   }
@@ -595,6 +628,7 @@ function deleteActivity(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.deleteRow(i + 1);
+      invalidateCache("activities");
       return { success: true };
     }
   }
@@ -602,12 +636,12 @@ function deleteActivity(data) {
 }
 function getActivitiesByRoom(roomNumber) {
   if (!roomNumber) return { success: false, error: "ต้องระบุห้องเรียน" };
-  const data = sheetToJSON(getSheet(SHEETS.ACTIVITIES));
+  const data = getActivitiesData();
   return { success: true, data: data.filter(row => String(row["ห้องเรียน"]) === String(roomNumber)) };
 }
 
 function getLeaderboard() {
-  const data = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+  const data = getCheckInLogData();
   const counts = {};
   data.forEach(row => {
     const room = row["RoomNumber"];
@@ -846,14 +880,14 @@ function getLibraryUsageStats(monthYear) {
   let groupVisitCount = 0;
   let selfVisitCount = 0;
 
-  const borrowLogs = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
+  const borrowLogs = getBorrowLogData();
   borrowLogs.forEach(row => {
     if (inTargetMonth(row["วันยืม"]) && row["ชื่อผู้ยืม"]) {
       teacherSet[String(row["ชื่อผู้ยืม"]).trim()] = true;
     }
   });
 
-  const activities = sheetToJSON(getSheet(SHEETS.ACTIVITIES));
+  const activities = getActivitiesData();
   activities.forEach(row => {
     if (String(row["ห้องเรียน"]) !== "งานห้องสมุด") return;
     if (!inTargetMonth(row["วันที่"])) return;
@@ -919,14 +953,14 @@ function deleteLibraryStats(id) {
 // และความถี่การเข้าใช้ของครูรายเดือนย้อนหลัง 12 เดือน (นับจำนวนครั้งเท่านั้น ไม่ระบุชื่อ)
 function getPublicLibraryStats() {
   const roomUsage = {};
-  const checkins = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+  const checkins = getCheckInLogData();
   checkins.forEach(row => {
     const room = row["RoomNumber"];
     if (!room) return;
     roomUsage[room] = (roomUsage[room] || 0) + 1;
   });
 
-  const activities = sheetToJSON(getSheet(SHEETS.ACTIVITIES));
+  const activities = getActivitiesData();
   activities.forEach(row => {
     const room = row["ห้องเรียน"];
     if (!room) return;
