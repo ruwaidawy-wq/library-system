@@ -180,8 +180,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
           table { width: 100%; border-collapse: collapse; font-size: 12px; }
           td { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
           thead td { background: #ecfdf5; font-weight: 700; text-align: center; }
-          .row-imgs { display: flex; flex-wrap: wrap; gap: 4px; }
-          img.row-img { width: 48px; height: 48px; object-fit: cover; border-radius: 4px; }
+          .row-imgs { display: flex; flex-wrap: wrap; gap: 6px; }
+          img.row-img { width: 110px; height: 110px; object-fit: cover; border-radius: 6px; }
           .footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
         </style>
       </head>
@@ -195,14 +195,14 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         <table>
           <thead>
             <tr>
-              <td style="width:5%">ลำดับ</td>
-              <td style="width:13%">วันที่</td>
-              <td style="width:8%">เวลา</td>
-              <td style="width:16%">ชื่อนักเรียน</td>
-              <td style="width:14%">ชื่อครู</td>
-              <td style="width:12%">แหล่งเรียนรู้ที่ใช้</td>
-              <td style="width:12%">สิ่งที่ได้รับ</td>
-              <td style="width:20%">รูปภาพ</td>
+              <td style="width:4%">ลำดับ</td>
+              <td style="width:11%">วันที่</td>
+              <td style="width:7%">เวลา</td>
+              <td style="width:14%">ชื่อนักเรียน</td>
+              <td style="width:12%">ชื่อครู</td>
+              <td style="width:10%">แหล่งเรียนรู้ที่ใช้</td>
+              <td style="width:10%">สิ่งที่ได้รับ</td>
+              <td style="width:32%">รูปภาพ</td>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
