@@ -515,7 +515,7 @@ if (data.success) {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
+      <div className="no-print flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ color: "#1e3a5f" }}>Admin Panel</h1>
           <p className="text-slate-400 text-sm">จัดการระบบห้องสมุดและแหล่งเรียนรู้</p>
@@ -533,7 +533,7 @@ if (data.success) {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="no-print grid grid-cols-3 gap-3 mb-6">
         {[
           { label: "รอยืม", count: pendingBorrow.length, color: "#7c3aed" },
           { label: "รอคืน", count: pending.length, color: "#f59e0b" },
@@ -547,7 +547,7 @@ if (data.success) {
       </div>
 
       {/* Tabs */}
-      <div className="flex rounded-2xl p-1 mb-6" style={{ background: "#e8f0fb" }}>
+      <div className="no-print flex rounded-2xl p-1 mb-6" style={{ background: "#e8f0fb" }}>
         {[
           { id: "borrow" as Tab, label: "การยืม-คืนหนังสือ", icon: <BookOpen size={18} /> },
           { id: "activity" as Tab, label: "บันทึกกิจกรรม", icon: <ClipboardList size={18} /> },
