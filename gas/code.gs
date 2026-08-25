@@ -498,13 +498,14 @@ function updatePaymentStatus(data) {
 // ============================================================
 
 function checkIn(data) {
-  const { roomNumber, teacherName, studentName, received, imageUrl, corner } = data;
+  const { roomNumber, teacherName, studentName, received, imageUrl, corner, timestamp } = data;
   if (!roomNumber || !teacherName || !studentName)
     return { success: false, error: "ข้อมูลไม่ครบ" };
   const sheet = getSheet(SHEETS.CHECKIN_LOG);
-  const timestamp = new Date();
-  sheet.appendRow([roomNumber, teacherName, studentName, received || "", timestamp, processImageField(imageUrl, "checkin"), corner || ""]);
-  return { success: true, timestamp: timestamp.toISOString() };
+  // อนุญาตให้ระบุวัน-เวลาเข้าใช้เอง (บันทึกย้อนหลัง) ถ้าไม่ระบุมาให้ใช้เวลาปัจจุบัน
+  const ts = timestamp ? new Date(timestamp) : new Date();
+  sheet.appendRow([roomNumber, teacherName, studentName, received || "", ts, processImageField(imageUrl, "checkin"), corner || ""]);
+  return { success: true, timestamp: ts.toISOString() };
 }
 
 function getCheckInsByRoom(roomNumber) {

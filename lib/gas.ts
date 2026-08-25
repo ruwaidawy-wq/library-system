@@ -138,6 +138,7 @@ export const learningApi = {
     received?: string;
     imageUrl?: string;
     corner?: string;
+    timestamp?: string;
   }) => gasRequest<{ timestamp: string }>({ action: "checkIn", ...data }),
 
   getCheckInsByRoom: (roomNumber: string) =>

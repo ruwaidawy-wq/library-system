@@ -46,6 +46,13 @@ const ALL_ROOMS: Record<string, string> = {
 
 type Tab = "info" | "checkin";
 
+function localDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function localTimeStr(d: Date) {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 export default function RoomPage({ params }: { params: { roomId: string } }) {
   const roomId = params.roomId;
   const roomName = ALL_ROOMS[roomId] || roomId;
@@ -62,6 +69,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [showCheckinForm, setShowCheckinForm] = useState(false);
   const [ciStudents, setCiStudents] = useState<string[]>([]);
   const [ciTeachers, setCiTeachers] = useState<string[]>([]);
+  const [ciDate, setCiDate] = useState(() => localDateStr(new Date()));
+  const [ciTime, setCiTime] = useState(() => localTimeStr(new Date()));
   const [ciReceived, setCiReceived] = useState("");
   const [ciCorner, setCiCorner] = useState("");
   const [ciPhotos, setCiPhotos] = useState<string[]>([]);
@@ -113,9 +122,10 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
   async function handleCheckin(e: React.FormEvent) {
     e.preventDefault();
-    if (ciStudents.length === 0 || ciTeachers.length === 0 || registryEntries.length === 0) return;
+    if (ciStudents.length === 0 || ciTeachers.length === 0 || registryEntries.length === 0 || !ciDate || !ciTime) return;
     setCiSubmitting(true);
     setCiError("");
+    const combined = new Date(`${ciDate}T${ciTime}:00`);
     const res = await learningApi.checkIn({
       roomNumber: roomName,
       teacherName: ciTeachers.join("\n"),
@@ -123,11 +133,14 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       received: ciReceived,
       imageUrl: ciPhotos.join("|||"),
       corner: ciCorner,
+      timestamp: isNaN(combined.getTime()) ? undefined : combined.toISOString(),
     });
     setCiSubmitting(false);
     if (res.success) {
       setCiStudents([]);
       setCiTeachers([]);
+      setCiDate(localDateStr(new Date()));
+      setCiTime(localTimeStr(new Date()));
       setCiReceived("");
       setCiCorner("");
       setCiPhotos([]);
@@ -303,6 +316,22 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                 <NameTagPicker value={ciTeachers} onChange={setCiTeachers} options={teacherNames}
                   placeholder="พิมพ์เพื่อค้นหาชื่อครู..." accentColor="#065f46" />
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">
+                    วันที่ <span className="text-red-500">*</span>
+                  </label>
+                  <input type="date" value={ciDate} onChange={e => setCiDate(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-600 mb-1">
+                    เวลา <span className="text-red-500">*</span>
+                  </label>
+                  <input type="time" value={ciTime} onChange={e => setCiTime(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
+                </div>
+              </div>
               {registryEntries.length > 0 && (
                 <div>
                   <label className="block text-sm font-medium text-slate-600 mb-1">แหล่งเรียนรู้ / มุมการศึกษาที่ใช้</label>
@@ -344,7 +373,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                 )}
               </div>
               <div className="flex gap-2 pt-2">
-                <button type="submit" disabled={ciSubmitting || ciStudents.length === 0 || ciTeachers.length === 0 || registryEntries.length === 0}
+                <button type="submit" disabled={ciSubmitting || ciStudents.length === 0 || ciTeachers.length === 0 || registryEntries.length === 0 || !ciDate || !ciTime}
                   className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
                   style={{ background: "#065f46" }}>
                   {ciSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
