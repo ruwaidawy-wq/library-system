@@ -77,22 +77,29 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const [ciSubmitting, setCiSubmitting] = useState(false);
   const [ciSuccess, setCiSuccess] = useState(false);
   const [ciError, setCiError] = useState("");
-  const [registryEntries, setRegistryEntries] = useState<RoomRegistryEntry[]>([]);
+  const [allRegistryEntries, setAllRegistryEntries] = useState<RoomRegistryEntry[]>([]);
+  const [registryLoading, setRegistryLoading] = useState(true);
   const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
   const [studentRoster, setStudentRoster] = useState<Student[]>([]);
   const ciPhotoInputRef = useRef<HTMLInputElement>(null);
 
   const teacherNames = teacherRoster.map((t) => t["ชื่อ-นามสกุล"]);
   const studentNames = studentRoster.map((s) => s["ชื่อ-นามสกุล"]);
+  const registryEntries = allRegistryEntries.filter(e => e.สถานะ === "อนุมัติแล้ว");
+
+  async function loadRegistry() {
+    setRegistryLoading(true);
+    const reg = await roomApi.getRoomRegistryByRoom(roomId);
+    if (reg.success && reg.data) setAllRegistryEntries(reg.data);
+    setRegistryLoading(false);
+  }
 
   useEffect(() => {
     learningApi.getCheckInsByRoom(roomName).then((ci) => {
       if (ci.success && ci.data) setCheckins(ci.data);
       setLoading(false);
     });
-    roomApi.getRoomRegistryByRoom(roomId).then((reg) => {
-      if (reg.success && reg.data) setRegistryEntries(reg.data.filter(e => e.สถานะ === "อนุมัติแล้ว"));
-    });
+    loadRegistry();
     libraryApi.getTeachers().then((res) => {
       if (res.success && res.data) setTeacherRoster(res.data);
     });
@@ -440,7 +447,8 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
 
       {/* TAB: ทะเบียนแหล่งเรียนรู้ */}
       {activeTab === "info" && (
-        <RoomRegistryPanel roomId={roomId} isAdminMode={isAdminMode} />
+        <RoomRegistryPanel roomId={roomId} isAdminMode={isAdminMode} entries={allRegistryEntries}
+          loading={registryLoading} onReload={loadRegistry} teacherRoster={teacherRoster} />
       )}
 
       {/* TAB: ประวัติการเข้าใช้ */}

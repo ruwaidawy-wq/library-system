@@ -1,7 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Plus, Edit2, Trash2, Save, X, Camera, Loader2, CheckCircle } from "lucide-react";
-import { roomApi, libraryApi, RoomRegistryEntry, Teacher } from "@/lib/gas";
+import { roomApi, RoomRegistryEntry, Teacher } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import NameTagPicker from "@/components/NameTagPicker";
 
@@ -13,11 +13,13 @@ const ROOM_TYPES = [
 interface Props {
   roomId: string;
   isAdminMode: boolean;
+  entries: RoomRegistryEntry[];
+  loading: boolean;
+  onReload: () => void;
+  teacherRoster: Teacher[];
 }
 
-export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
-  const [entries, setEntries] = useState<RoomRegistryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loading, onReload, teacherRoster }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,25 +32,9 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
   const [formResponsibleList, setFormResponsibleList] = useState<string[]>([]);
   const [formEstablished, setFormEstablished] = useState("");
   const [formPhotos, setFormPhotos] = useState<string[]>([]);
-  const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
   const teacherNames = teacherRoster.map((t) => t["ชื่อ-นามสกุล"]);
-
-  async function load() {
-    setLoading(true);
-    const res = await roomApi.getRoomRegistryByRoom(roomId);
-    if (res.success && res.data) setEntries(res.data);
-    setLoading(false);
-  }
-
-  useEffect(() => { load(); }, [roomId]);
-
-  useEffect(() => {
-    libraryApi.getTeachers().then((res) => {
-      if (res.success && res.data) setTeacherRoster(res.data);
-    });
-  }, []);
 
   function resetForm() {
     setEditingId(null);
@@ -112,7 +98,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
     setSaving(false);
     setShowForm(false);
     resetForm();
-    await load();
+    onReload();
     if (isNewEntry && !isAdminMode) {
       setSubmittedPending(true);
       setTimeout(() => setSubmittedPending(false), 6000);
@@ -121,13 +107,13 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
 
   async function handleApprove(entry: RoomRegistryEntry) {
     await roomApi.approveRoomRegistryEntry(entry.ID);
-    load();
+    onReload();
   }
 
   async function handleDelete(entry: RoomRegistryEntry) {
     if (!confirm(`ต้องการลบ "${entry.ชื่อ || entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
     await roomApi.deleteRoomRegistryEntry(entry.ID);
-    load();
+    onReload();
   }
 
   const visibleEntries = isAdminMode
