@@ -116,9 +116,9 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
     onReload();
   }
 
-  const visibleEntries = isAdminMode
-    ? entries
-    : entries.filter(e => e.สถานะ === "อนุมัติแล้ว");
+  // แสดงทุกรายการของห้องนี้เสมอ (รวมที่รออนุมัติด้วย) ไม่ใช่แค่โหมด Admin
+  // เพื่อให้ผู้ที่ส่งข้อมูลมั่นใจว่าข้อมูลถูกส่งเข้าระบบแล้วจริง ระหว่างรอแอดมินอนุมัติ
+  const visibleEntries = entries;
   const pendingCount = entries.filter(e => e.สถานะ !== "อนุมัติแล้ว").length;
 
   return (
@@ -126,7 +126,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
       <div className="flex items-center justify-between">
         <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
           ทะเบียนแหล่งเรียนรู้ {visibleEntries.length > 0 && `(${visibleEntries.length})`}
-          {isAdminMode && pendingCount > 0 && (
+          {pendingCount > 0 && (
             <span className="ml-2 text-xs px-2 py-1 rounded-full font-medium align-middle"
               style={{ background: "#f3e8ff", color: "#7c3aed" }}>
               รออนุมัติ {pendingCount}
@@ -262,7 +262,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
                       style={{ background: "#ecfdf5", color: "#065f46" }}>
                       {entry.ประเภท || "ไม่ระบุประเภท"}
                     </span>
-                    {isAdminMode && isPending && (
+                    {isPending && (
                       <span className="text-xs px-2 py-1 rounded-full font-medium"
                         style={{ background: "#f3e8ff", color: "#7c3aed" }}>
                         รออนุมัติ

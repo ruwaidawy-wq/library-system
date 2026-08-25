@@ -245,7 +245,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   const checkinPhotos = checkins.flatMap(c => c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : []);
 
   const tabs: { id: Tab; label: string; icon: React.ReactNode }[] = [
-    { id: "info", label: "ทะเบียนห้อง", icon: <Edit2 size={16} /> },
+    { id: "info", label: "ทะเบียนแหล่งเรียนรู้", icon: <Edit2 size={16} /> },
     { id: "checkin", label: "ประวัติการเข้าใช้", icon: <Users size={16} /> },
   ];
 
@@ -284,7 +284,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
         </button>
         {registryEntries.length === 0 && (
           <p className="text-xs text-amber-600 text-center mt-2">
-            ห้องนี้ยังไม่มีข้อมูลแหล่งเรียนรู้ กรุณากด &quot;เพิ่มแหล่งเรียนรู้&quot; ที่แท็บ &quot;ทะเบียนห้อง&quot; ก่อน จึงจะบันทึกการเข้าใช้ได้
+            ห้องนี้ยังไม่มีข้อมูลแหล่งเรียนรู้ กรุณากด &quot;เพิ่มแหล่งเรียนรู้&quot; ที่แท็บ &quot;ทะเบียนแหล่งเรียนรู้&quot; ก่อน จึงจะบันทึกการเข้าใช้ได้
           </p>
         )}
       </div>
