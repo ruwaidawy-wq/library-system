@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap, BarChart3 } from "lucide-react";
+import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap, BarChart3, Printer } from "lucide-react";
 import { libraryApi, activityApi, roomApi, BorrowLog, Activity, RoomRegistryEntry } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import LibraryStatsForm from "@/components/library/LibraryStatsForm";
@@ -209,6 +209,115 @@ if (data.success) {
       setRegistryError(res.error || "ลบไม่สำเร็จ");
     }
     loadRegistry();
+  }
+
+  function handlePrintRegistry() {
+    const byRoom = new Map<string, RoomRegistryEntry[]>();
+    approvedRegistry.forEach((entry) => {
+      const list = byRoom.get(entry.RoomID) || [];
+      list.push(entry);
+      byRoom.set(entry.RoomID, list);
+    });
+    const roomIds = Array.from(byRoom.keys()).sort(
+      (a, b) => (byRoom.get(b)?.length || 0) - (byRoom.get(a)?.length || 0)
+    );
+
+    const summaryRows = roomIds.map((roomId) => `
+      <tr>
+        <td>${escapeHtml(ALL_ROOMS[roomId] || roomId)}</td>
+        <td style="text-align:center">${byRoom.get(roomId)?.length || 0}</td>
+      </tr>
+    `).join("");
+
+    const detailSections = roomIds.map((roomId) => {
+      const entries = byRoom.get(roomId) || [];
+      const cards = entries.map((entry) => {
+        const photos = entry.รูปภาพURL ? entry.รูปภาพURL.split(",").filter(Boolean) : [];
+        const responsible = entry.ผู้รับผิดชอบ
+          ? entry.ผู้รับผิดชอบ.split("\n").filter(Boolean).map(escapeHtml).join(", ")
+          : "-";
+        return `
+          <div class="entry-card">
+            <p class="entry-title">${escapeHtml(entry.ชื่อ) || "ไม่ระบุชื่อ"}
+              <span class="entry-type">${escapeHtml(entry.ประเภท) || "ไม่ระบุประเภท"}</span>
+            </p>
+            ${entry.รายละเอียด ? `<p class="entry-line">${escapeHtml(entry.รายละเอียด)}</p>` : ""}
+            ${entry["อุปกรณ์/สื่อ"] ? `<p class="entry-line"><b>อุปกรณ์/สื่อ:</b> ${escapeHtml(entry["อุปกรณ์/สื่อ"])}</p>` : ""}
+            <p class="entry-line"><b>ผู้รับผิดชอบ:</b> ${responsible}</p>
+            ${entry.วันที่จัดตั้ง ? `<p class="entry-line"><b>จัดตั้ง:</b> ${new Date(entry.วันที่จัดตั้ง).toLocaleDateString("th-TH")}</p>` : ""}
+            ${photos.length > 0 ? `
+              <div class="entry-imgs">
+                ${photos.map((url) => `<img class="entry-img" src="${escapeHtml(url)}" alt="" />`).join("")}
+              </div>
+            ` : ""}
+          </div>
+        `;
+      }).join("");
+      return `
+        <div class="room-section">
+          <h3>${escapeHtml(ALL_ROOMS[roomId] || roomId)} <span class="room-count">(${entries.length} รายการ)</span></h3>
+          ${cards}
+        </div>
+      `;
+    }).join("");
+
+    const content = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+          body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #1a202c; }
+          .header { text-align: center; margin-bottom: 20px; }
+          .header img { width: 80px; height: 80px; object-fit: contain; }
+          .header h1 { font-size: 16px; font-weight: 700; margin: 6px 0 2px; }
+          .header h2 { font-size: 14px; font-weight: 600; margin: 0 0 2px; color: #444; }
+          .header p { font-size: 12px; color: #666; margin: 0; }
+          .divider { border-top: 3px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; margin: 12px 0; }
+          h2.section-title { font-size: 15px; font-weight: 700; margin: 20px 0 10px; color: #1e3a5f; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          table td { border: 1px solid #000; padding: 7px 10px; }
+          table thead td { background: #f0f4f8; font-weight: 600; }
+          .room-section { margin-top: 22px; page-break-inside: avoid; }
+          .room-section h3 { font-size: 14px; font-weight: 700; color: #1e3a5f; border-bottom: 2px solid #1e3a5f; padding-bottom: 4px; margin-bottom: 10px; }
+          .room-count { font-weight: 400; color: #666; font-size: 12px; }
+          .entry-card { border: 1px solid #ccc; border-radius: 6px; padding: 10px 12px; margin-bottom: 10px; page-break-inside: avoid; }
+          .entry-title { font-size: 13.5px; font-weight: 700; margin: 0 0 4px; }
+          .entry-type { font-weight: 400; font-size: 11.5px; color: #666; margin-left: 6px; }
+          .entry-line { font-size: 12.5px; margin: 2px 0; }
+          .entry-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+          img.entry-img { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; }
+          .footer { text-align: center; font-size: 11px; color: #888; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${LOGO_URL}" alt="logo" />
+          <h1>ทะเบียนแหล่งเรียนรู้ทั้งหมด</h1>
+          <h2>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</h2>
+          <p>สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน กระทรวงศึกษาธิการ</p>
+        </div>
+        <div class="divider"></div>
+        <h2 class="section-title">สรุปจำนวนแหล่งเรียนรู้แต่ละห้องเรียน</h2>
+        <table>
+          <thead>
+            <tr><td>ห้องเรียน</td><td style="width:20%;text-align:center">จำนวน</td></tr>
+          </thead>
+          <tbody>
+            ${summaryRows}
+            <tr><td style="font-weight:700">รวมทั้งหมด</td><td style="text-align:center;font-weight:700">${approvedRegistry.length}</td></tr>
+          </tbody>
+        </table>
+        <h2 class="section-title">รายละเอียดแหล่งเรียนรู้</h2>
+        ${detailSections}
+        <div class="footer">พิมพ์วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) { setTimeout(() => { w.print(); }, 800); }
   }
 
   function handleDownloadPDF(act: Activity) {
@@ -952,9 +1061,17 @@ if (data.success) {
 
               {/* อนุมัติแล้ว */}
               <div>
-                <h2 className="font-semibold text-lg mb-3" style={{ color: "#1e3a5f" }}>
-                  ทะเบียนแหล่งเรียนรู้ทั้งหมด ({approvedRegistry.length})
-                </h2>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="font-semibold text-lg" style={{ color: "#1e3a5f" }}>
+                    ทะเบียนแหล่งเรียนรู้ทั้งหมด ({approvedRegistry.length})
+                  </h2>
+                  {approvedRegistry.length > 0 && (
+                    <button onClick={handlePrintRegistry}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs">
+                      <Printer size={14} /> พิมพ์สรุป
+                    </button>
+                  )}
+                </div>
                 {approvedRegistry.length === 0 ? (
                   <p className="text-slate-400 text-sm text-center py-6 bg-white rounded-2xl shadow">ยังไม่มีรายการที่อนุมัติแล้ว</p>
                 ) : (
