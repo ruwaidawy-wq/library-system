@@ -174,7 +174,9 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">ประเภท</label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">
+              ประเภท <span className="text-red-500">*</span>
+            </label>
             <select value={formType} onChange={e => setFormType(e.target.value)}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 appearance-none bg-white">
               <option value="">-- เลือกประเภท --</option>
@@ -182,29 +184,39 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">รายละเอียด</label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">
+              รายละเอียด <span className="text-red-500">*</span>
+            </label>
             <textarea value={formDesc} onChange={e => setFormDesc(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">อุปกรณ์/สื่อการเรียนรู้</label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">
+              อุปกรณ์/สื่อการเรียนรู้ <span className="text-red-500">*</span>
+            </label>
             <textarea value={formEquip} onChange={e => setFormEquip(e.target.value)}
               rows={3}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 resize-none" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">ผู้รับผิดชอบ (เลือกได้หลายคน)</label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">
+              ผู้รับผิดชอบ (เลือกได้หลายคน) <span className="text-red-500">*</span>
+            </label>
             <NameTagPicker value={formResponsibleList} onChange={setFormResponsibleList} options={teacherNames}
               placeholder="พิมพ์เพื่อค้นหาชื่อผู้รับผิดชอบ..." accentColor="#065f46" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-500 mb-1">วันที่จัดตั้ง</label>
+            <label className="block text-sm font-medium text-slate-500 mb-1">
+              วันที่จัดตั้ง <span className="text-red-500">*</span>
+            </label>
             <input type="date" value={formEstablished} onChange={e => setFormEstablished(e.target.value)}
               className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl text-sm outline-none focus:border-green-400" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-600 mb-2">ภาพแหล่งเรียนรู้/มุมการเรียนรู้</label>
+            <label className="block text-sm font-medium text-slate-600 mb-2">
+              ภาพแหล่งเรียนรู้/มุมการเรียนรู้ <span className="text-red-500">*</span>
+            </label>
             <input ref={photoInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handlePhoto} />
             <button type="button" onClick={() => photoInputRef.current?.click()}
               className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-300 rounded-xl text-slate-500 hover:border-green-400 text-sm mb-3">
@@ -225,7 +237,10 @@ export default function RoomRegistryPanel({ roomId, isAdminMode }: Props) {
             )}
           </div>
           <div className="flex gap-2">
-            <button type="submit" disabled={saving || !formName}
+            <button type="submit" disabled={
+              saving || !formName || !formType || !formDesc || !formEquip ||
+              formResponsibleList.length === 0 || !formEstablished || formPhotos.length === 0
+            }
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-50"
               style={{ background: "#065f46" }}>
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
