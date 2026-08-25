@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ArrowLeft, Trophy, Users, TrendingUp, Calendar, Search } from "lucide-react";
+import { ArrowLeft, Trophy, Users, TrendingUp, Calendar, Search, MapPin, Award, ChevronDown, ChevronUp } from "lucide-react";
 import Link from "next/link";
-import { learningApi, LeaderboardEntry } from "@/lib/gas";
+import { learningApi, roomApi, RoomRegistryEntry } from "@/lib/gas";
 
 const ALL_ROOMS = [
   { id: "room-1", name: "ห้องเรียน ๑" },
@@ -43,33 +43,136 @@ const ALL_ROOMS = [
   { id: "room-24", name: "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)" },
 ];
 
+// คะแนนรวมของแต่ละห้อง: 1 แหล่งเรียนรู้ที่อนุมัติแล้ว = 3 คะแนน, 1 ครั้งที่เข้าใช้ = 1 คะแนน
+const REGISTRY_POINTS = 3;
+const VISIT_POINTS = 1;
+
+type RoomRank = { id: string; name: string; registryCount: number; visitCount: number; score: number };
+
+function RankingBoard({
+  title, icon, items, getValue, unit, getSubtext,
+}: {
+  title: string;
+  icon: React.ReactNode;
+  items: RoomRank[];
+  getValue: (r: RoomRank) => number;
+  unit: string;
+  getSubtext?: (r: RoomRank) => string;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  if (items.length === 0) return null;
+  const medals = ["🥇", "🥈", "🥉", "4", "5"];
+  const top5 = items.slice(0, 5);
+  const rest = items.slice(5);
+
+  return (
+    <div className="bg-white rounded-2xl shadow p-5 mb-6">
+      <div className="flex items-center gap-2 mb-4">
+        {icon}
+        <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>{title}</h2>
+      </div>
+      <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
+        {top5.map((entry, i) => (
+          <Link
+            key={entry.id}
+            href={`/learning-center/${entry.id}`}
+            className="rounded-2xl p-4 text-center text-white transition-all hover:opacity-90 hover:-translate-y-1 block"
+            style={{
+              background: i === 0
+                ? "linear-gradient(135deg, #f59e0b, #d97706)"
+                : i === 1
+                ? "linear-gradient(135deg, #94a3b8, #64748b)"
+                : i === 2
+                ? "linear-gradient(135deg, #cd7c4a, #a86134)"
+                : "linear-gradient(135deg, #065f46, #059669)",
+            }}>
+            <div className="text-2xl mb-1 font-bold">{medals[i]}</div>
+            <p className="font-bold text-xs line-clamp-2">{entry.name}</p>
+            <p className="text-xs opacity-80">{getValue(entry)} {unit}</p>
+            {getSubtext && <p className="text-[10px] opacity-70 mt-0.5">{getSubtext(entry)}</p>}
+          </Link>
+        ))}
+      </div>
+      {rest.length > 0 && (
+        <>
+          {showAll && (
+            <div className="mt-4 divide-y divide-slate-100">
+              {rest.map((entry, i) => (
+                <Link
+                  key={entry.id}
+                  href={`/learning-center/${entry.id}`}
+                  className="flex items-center justify-between py-2.5 px-2 -mx-2 rounded-lg hover:bg-slate-50">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-xs font-semibold text-slate-400 w-6 shrink-0 text-center">{i + 6}</span>
+                    <div className="min-w-0">
+                      <p className="text-sm text-slate-700 truncate">{entry.name}</p>
+                      {getSubtext && <p className="text-xs text-slate-400">{getSubtext(entry)}</p>}
+                    </div>
+                  </div>
+                  <span className="text-sm font-medium shrink-0 ml-2" style={{ color: "#065f46" }}>
+                    {getValue(entry)} {unit}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+          <button onClick={() => setShowAll(v => !v)}
+            className="w-full mt-3 flex items-center justify-center gap-1 py-2 text-sm font-medium text-slate-500 hover:text-slate-700">
+            {showAll ? <>ย่อรายการ <ChevronUp size={16} /></> : <>ดูเพิ่มเติม ({rest.length}) <ChevronDown size={16} /></>}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function LearningCenterPage() {
-  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [roomStats, setRoomStats] = useState<Record<string, number>>({});
+  const [registryEntries, setRegistryEntries] = useState<RoomRegistryEntry[]>([]);
   const [totalCheckins, setTotalCheckins] = useState(0);
   const [loadingStats, setLoadingStats] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     Promise.all([
-      learningApi.getLeaderboard(),
       learningApi.getAllRoomsStats(),
-    ]).then(([lb, stats]) => {
-      if (lb.data) setLeaderboard(lb.data);
+      roomApi.getRoomRegistry(),
+    ]).then(([stats, reg]) => {
       if (stats.data) {
         setRoomStats(stats.data);
         const total = Object.values(stats.data).reduce((a: number, b: number) => a + b, 0);
         setTotalCheckins(total);
       }
+      if (reg.data) setRegistryEntries(reg.data);
       setLoadingStats(false);
     });
   }, []);
 
-  const medals = ["🥇", "🥈", "🥉", "4", "5"];
   const activeRooms = Object.keys(roomStats).length;
   const filteredRooms = ALL_ROOMS.filter(r =>
     r.name.includes(searchQuery)
   );
+
+  const registryCounts: Record<string, number> = {};
+  registryEntries.filter(e => e.สถานะ === "อนุมัติแล้ว").forEach(e => {
+    registryCounts[e.RoomID] = (registryCounts[e.RoomID] || 0) + 1;
+  });
+
+  const roomRanks: RoomRank[] = ALL_ROOMS.map(r => {
+    const registryCount = registryCounts[r.id] || 0;
+    const visitCount = roomStats[r.name] || 0;
+    return {
+      id: r.id,
+      name: r.name,
+      registryCount,
+      visitCount,
+      score: registryCount * REGISTRY_POINTS + visitCount * VISIT_POINTS,
+    };
+  });
+
+  const byVisits = roomRanks.filter(r => r.visitCount > 0).sort((a, b) => b.visitCount - a.visitCount);
+  const byRegistry = roomRanks.filter(r => r.registryCount > 0).sort((a, b) => b.registryCount - a.registryCount);
+  const byScore = roomRanks.filter(r => r.score > 0).sort((a, b) => b.score - a.score);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -106,38 +209,30 @@ export default function LearningCenterPage() {
             ))}
           </div>
 
-          {/* Leaderboard */}
-          {leaderboard.length > 0 && (
-            <div className="bg-white rounded-2xl shadow p-5 mb-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Trophy size={20} style={{ color: "#065f46" }} />
-                <h2 className="font-semibold text-lg" style={{ color: "#065f46" }}>
-                  Top 5 ห้องเรียนยอดนิยม
-                </h2>
-              </div>
-              <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                {leaderboard.map((entry, i) => (
-                  <Link
-                    key={entry.room}
-                    href={`/learning-center/${ALL_ROOMS.find(r => r.name === entry.room)?.id || entry.room}`}
-                    className="rounded-2xl p-4 text-center text-white transition-all hover:opacity-90 hover:-translate-y-1 block"
-                    style={{
-                      background: i === 0
-                        ? "linear-gradient(135deg, #f59e0b, #d97706)"
-                        : i === 1
-                        ? "linear-gradient(135deg, #94a3b8, #64748b)"
-                        : i === 2
-                        ? "linear-gradient(135deg, #cd7c4a, #a86134)"
-                        : "linear-gradient(135deg, #065f46, #059669)",
-                    }}>
-                    <div className="text-2xl mb-1 font-bold">{medals[i]}</div>
-                    <p className="font-bold text-xs">{entry.room}</p>
-                    <p className="text-xs opacity-80">{entry.count} ครั้ง</p>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
+          <RankingBoard
+            title="ห้องเรียนยอดนิยม (เข้าใช้บ่อยที่สุด)"
+            icon={<Trophy size={20} style={{ color: "#065f46" }} />}
+            items={byVisits}
+            getValue={(r) => r.visitCount}
+            unit="ครั้ง"
+          />
+
+          <RankingBoard
+            title="ห้องที่มีแหล่งเรียนรู้มากที่สุด"
+            icon={<MapPin size={20} style={{ color: "#065f46" }} />}
+            items={byRegistry}
+            getValue={(r) => r.registryCount}
+            unit="แหล่ง"
+          />
+
+          <RankingBoard
+            title="อันดับคะแนนรวม"
+            icon={<Award size={20} style={{ color: "#065f46" }} />}
+            items={byScore}
+            getValue={(r) => r.score}
+            unit="คะแนน"
+            getSubtext={(r) => `${r.registryCount} แหล่งเรียนรู้ • ${r.visitCount} ครั้ง`}
+          />
         </>
       )}
 
