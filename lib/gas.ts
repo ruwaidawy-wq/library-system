@@ -64,6 +64,7 @@ export type CheckIn = {
   Timestamp: string;
   รูปภาพ?: string;
   แหล่งเรียนรู้ที่ใช้?: string;
+  สถานะ?: string;
 };
 
 export type Activity = {
@@ -143,6 +144,8 @@ export const learningApi = {
   }) => gasRequest<{ timestamp: string; id: string }>({ action: "checkIn", ...data }),
 
   deleteCheckIn: (id: string) => gasRequest({ action: "deleteCheckIn", id }),
+  requestDeleteCheckIn: (id: string) => gasRequest({ action: "requestDeleteCheckIn", id }),
+  cancelDeleteCheckIn: (id: string) => gasRequest({ action: "cancelDeleteCheckIn", id }),
 
   getCheckInsByRoom: (roomNumber: string) =>
     gasRequest<CheckIn[]>({ action: "getCheckInsByRoom", roomNumber }),

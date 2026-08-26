@@ -66,6 +66,8 @@ if (e.postData) {
       case "rejectBorrow":   result = rejectBorrow(data); break;
       case "checkIn":        result = checkIn(data); break;
       case "deleteCheckIn":  result = deleteCheckIn(data.id); break;
+      case "requestDeleteCheckIn": result = requestDeleteCheckIn(data.id); break;
+      case "cancelDeleteCheckIn":  result = cancelDeleteCheckIn(data.id); break;
       case "getCheckInsByRoom":   result = getCheckInsByRoom(data.roomNumber); break;
       case "getAllRoomsStats":    result = getAllRoomsStats(); break;
       case "addActivity":         result = addActivity(data); break;
@@ -553,6 +555,7 @@ function getCheckInsByRoom(roomNumber) {
 
 // ลบได้เฉพาะรายการที่เข้าใช้หลังอัปเดตนี้ (มีคอลัมน์ ID) รายการเก่าก่อนหน้าไม่มี ID
 // ให้ตรวจสอบ จะลบไม่ได้ — ป้องกันลบผิดแถวเพราะไม่มีตัวระบุที่แน่นอน
+// ฟังก์ชันนี้ลบแถวจริง ใช้ทั้งตอน Admin ลบเองโดยตรง และตอน Admin กดยืนยันคำขอลบที่ผู้ใช้ทั่วไปส่งมา
 function deleteCheckIn(id) {
   if (!id) return { success: false, error: "ต้องระบุ ID" };
   const sheet = getSheet(SHEETS.CHECKIN_LOG);
@@ -564,6 +567,47 @@ function deleteCheckIn(id) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.deleteRow(i + 1);
+      invalidateCache("checkin_log");
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
+}
+
+// ผู้ใช้ทั่วไป (ไม่ใช่ Admin) กดลบ = แค่ตั้งสถานะ "รอลบ" รอ Admin ยืนยันจริงผ่าน deleteCheckIn
+// เพื่อกันไม่ให้ใครก็ได้ลบประวัติการเข้าใช้ทิ้งได้ทันทีโดยไม่มีใครตรวจสอบ
+function requestDeleteCheckIn(id) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.CHECKIN_LOG);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).trim());
+  const idIdx = headers.indexOf("ID");
+  if (idIdx === -1) return { success: false, error: "ไม่พบคอลัมน์ ID ในชีต" };
+  const statusCol = getOrCreateColumn(sheet, "สถานะ");
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      sheet.getRange(i + 1, statusCol).setValue("รอลบ");
+      invalidateCache("checkin_log");
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
+}
+
+// Admin ปฏิเสธคำขอลบ — คืนสถานะปกติ ไม่ลบแถว
+function cancelDeleteCheckIn(id) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.CHECKIN_LOG);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).trim());
+  const idIdx = headers.indexOf("ID");
+  const statusIdx = headers.indexOf("สถานะ");
+  if (idIdx === -1 || statusIdx === -1) return { success: false, error: "ไม่พบข้อมูล" };
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      sheet.getRange(i + 1, statusIdx + 1).setValue("");
       invalidateCache("checkin_log");
       return { success: true };
     }

@@ -161,11 +161,26 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     }
   }
 
+  // Admin ลบทันที (ใช้ทั้งลบตรงๆ และตอนกดยืนยันคำขอลบที่คนอื่นส่งมา)
   async function handleDeleteCheckIn(c: CheckIn) {
     if (!c.ID) return;
     if (!confirm("ต้องการลบรายการเข้าใช้นี้ใช่หรือไม่?")) return;
     const res = await learningApi.deleteCheckIn(c.ID);
     if (res.success) setCheckins(prev => prev.filter(x => x.ID !== c.ID));
+  }
+
+  // ผู้ใช้ทั่วไปกดลบ = ส่งคำขอ รอ Admin อนุมัติก่อนถึงจะลบจริง
+  async function handleRequestDeleteCheckIn(c: CheckIn) {
+    if (!c.ID) return;
+    if (!confirm("ส่งคำขอลบรายการนี้ ระบบจะลบให้หลังแอดมินอนุมัติ ใช่หรือไม่?")) return;
+    const res = await learningApi.requestDeleteCheckIn(c.ID);
+    if (res.success) setCheckins(prev => prev.map(x => x.ID === c.ID ? { ...x, สถานะ: "รอลบ" } : x));
+  }
+
+  async function handleCancelDeleteCheckIn(c: CheckIn) {
+    if (!c.ID) return;
+    const res = await learningApi.cancelDeleteCheckIn(c.ID);
+    if (res.success) setCheckins(prev => prev.map(x => x.ID === c.ID ? { ...x, สถานะ: "" } : x));
   }
 
   function handlePrintHistory() {
@@ -495,8 +510,9 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                 const photos = c.รูปภาพ ? c.รูปภาพ.split(",").filter(Boolean) : [];
                 const students = c.ชื่อนักเรียน ? c.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ") : "";
                 const teachers = c.ชื่อครู ? c.ชื่อครู.split("\n").filter(Boolean).join(", ") : "";
+                const isPendingDelete = c.สถานะ === "รอลบ";
                 return (
-                  <div key={i} className="border border-slate-100 rounded-xl p-3">
+                  <div key={i} className={`border rounded-xl p-3 ${isPendingDelete ? "border-purple-200 bg-purple-50/40" : "border-slate-100"}`}>
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
                         <p className="font-medium text-slate-800 text-sm">{students}</p>
@@ -507,6 +523,12 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                         {c.สิ่งที่ได้รับ && (
                           <p className="text-xs text-slate-500 mt-0.5">ได้รับ: {c.สิ่งที่ได้รับ}</p>
                         )}
+                        {isPendingDelete && (
+                          <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
+                            style={{ background: "#f3e8ff", color: "#7c3aed" }}>
+                            รอแอดมินอนุมัติการลบ
+                          </span>
+                        )}
                       </div>
                       {photos.length > 0 && (
                         <img src={photos[0]} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
@@ -516,10 +538,32 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                           {c.Timestamp ? new Date(c.Timestamp).toLocaleDateString("th-TH") : ""}
                         </p>
                         {c.ID && (
-                          <button type="button" onClick={() => handleDeleteCheckIn(c)}
-                            className="p-1 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
-                            <Trash2 size={14} />
-                          </button>
+                          isAdminMode ? (
+                            isPendingDelete ? (
+                              <div className="flex gap-1">
+                                <button type="button" onClick={() => handleDeleteCheckIn(c)} title="ยืนยันลบ"
+                                  className="p-1 rounded-lg text-green-500 hover:bg-green-50 hover:text-green-600">
+                                  <CheckCircle size={14} />
+                                </button>
+                                <button type="button" onClick={() => handleCancelDeleteCheckIn(c)} title="ยกเลิกคำขอลบ"
+                                  className="p-1 rounded-lg text-slate-400 hover:bg-slate-50 hover:text-slate-600">
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            ) : (
+                              <button type="button" onClick={() => handleDeleteCheckIn(c)}
+                                className="p-1 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
+                                <Trash2 size={14} />
+                              </button>
+                            )
+                          ) : (
+                            !isPendingDelete && (
+                              <button type="button" onClick={() => handleRequestDeleteCheckIn(c)}
+                                className="p-1 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
+                                <Trash2 size={14} />
+                              </button>
+                            )
+                          )
                         )}
                       </div>
                     </div>
