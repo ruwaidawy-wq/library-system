@@ -169,12 +169,13 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     if (res.success) setCheckins(prev => prev.filter(x => x.ID !== c.ID));
   }
 
-  // ผู้ใช้ทั่วไปกดลบ = ส่งคำขอ รอ Admin อนุมัติก่อนถึงจะลบจริง
+  // ผู้ใช้ทั่วไปกดลบ = ส่งคำขอ รอ Admin อนุมัติก่อนถึงจะลบจริง ต้องระบุชื่อผู้ขอด้วย
   async function handleRequestDeleteCheckIn(c: CheckIn) {
     if (!c.ID) return;
-    if (!confirm("ส่งคำขอลบรายการนี้ ระบบจะลบให้หลังแอดมินอนุมัติ ใช่หรือไม่?")) return;
-    const res = await learningApi.requestDeleteCheckIn(c.ID);
-    if (res.success) setCheckins(prev => prev.map(x => x.ID === c.ID ? { ...x, สถานะ: "รอลบ" } : x));
+    const name = prompt("กรุณาระบุชื่อผู้ขอลบรายการนี้ (ระบบจะลบให้หลังแอดมินอนุมัติ):");
+    if (!name || !name.trim()) return;
+    const res = await learningApi.requestDeleteCheckIn(c.ID, name.trim());
+    if (res.success) setCheckins(prev => prev.map(x => x.ID === c.ID ? { ...x, สถานะ: "รอลบ", ผู้ขอลบ: name.trim() } : x));
   }
 
   async function handleCancelDeleteCheckIn(c: CheckIn) {
@@ -526,7 +527,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                         {isPendingDelete && (
                           <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full font-medium"
                             style={{ background: "#f3e8ff", color: "#7c3aed" }}>
-                            รอแอดมินอนุมัติการลบ
+                            รอแอดมินอนุมัติการลบ{c.ผู้ขอลบ ? ` โดย ${c.ผู้ขอลบ}` : ""}
                           </span>
                         )}
                       </div>

@@ -66,7 +66,7 @@ if (e.postData) {
       case "rejectBorrow":   result = rejectBorrow(data); break;
       case "checkIn":        result = checkIn(data); break;
       case "deleteCheckIn":  result = deleteCheckIn(data.id); break;
-      case "requestDeleteCheckIn": result = requestDeleteCheckIn(data.id); break;
+      case "requestDeleteCheckIn": result = requestDeleteCheckIn(data.id, data.requestedBy); break;
       case "cancelDeleteCheckIn":  result = cancelDeleteCheckIn(data.id); break;
       case "getCheckInsByRoom":   result = getCheckInsByRoom(data.roomNumber); break;
       case "getAllRoomsStats":    result = getAllRoomsStats(); break;
@@ -576,7 +576,7 @@ function deleteCheckIn(id) {
 
 // ผู้ใช้ทั่วไป (ไม่ใช่ Admin) กดลบ = แค่ตั้งสถานะ "รอลบ" รอ Admin ยืนยันจริงผ่าน deleteCheckIn
 // เพื่อกันไม่ให้ใครก็ได้ลบประวัติการเข้าใช้ทิ้งได้ทันทีโดยไม่มีใครตรวจสอบ
-function requestDeleteCheckIn(id) {
+function requestDeleteCheckIn(id, requestedBy) {
   if (!id) return { success: false, error: "ต้องระบุ ID" };
   const sheet = getSheet(SHEETS.CHECKIN_LOG);
   const allData = sheet.getDataRange().getValues();
@@ -584,10 +584,12 @@ function requestDeleteCheckIn(id) {
   const idIdx = headers.indexOf("ID");
   if (idIdx === -1) return { success: false, error: "ไม่พบคอลัมน์ ID ในชีต" };
   const statusCol = getOrCreateColumn(sheet, "สถานะ");
+  const requestedByCol = getOrCreateColumn(sheet, "ผู้ขอลบ");
 
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusCol).setValue("รอลบ");
+      sheet.getRange(i + 1, requestedByCol).setValue(requestedBy || "");
       invalidateCache("checkin_log");
       return { success: true };
     }
@@ -603,11 +605,13 @@ function cancelDeleteCheckIn(id) {
   const headers = allData[0].map(h => String(h).trim());
   const idIdx = headers.indexOf("ID");
   const statusIdx = headers.indexOf("สถานะ");
+  const requestedByIdx = headers.indexOf("ผู้ขอลบ");
   if (idIdx === -1 || statusIdx === -1) return { success: false, error: "ไม่พบข้อมูล" };
 
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusIdx + 1).setValue("");
+      if (requestedByIdx !== -1) sheet.getRange(i + 1, requestedByIdx + 1).setValue("");
       invalidateCache("checkin_log");
       return { success: true };
     }
