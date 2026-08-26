@@ -1,5 +1,3 @@
-const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL || "";
-
 export type ApiResponse<T = unknown> = {
   success: boolean;
   data?: T;

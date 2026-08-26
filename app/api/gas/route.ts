@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GAS_URL = process.env.NEXT_PUBLIC_GAS_URL || "";
+const GAS_URL = process.env.GAS_URL || "";
 const GAS_SHARED_SECRET = process.env.GAS_SHARED_SECRET || "";
 
 export async function POST(request: NextRequest) {

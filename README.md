@@ -81,7 +81,7 @@ cp .env.local.example .env.local
 
 แก้ไขใน `.env.local`:
 ```
-NEXT_PUBLIC_GAS_URL=https://script.google.com/macros/s/YOUR_ID/exec
+GAS_URL=https://script.google.com/macros/s/YOUR_ID/exec
 ```
 
 ### 4. Run ในเครื่อง
@@ -104,7 +104,7 @@ vercel
 
 # หรือ push ขึ้น GitHub แล้วเชื่อมกับ Vercel Dashboard
 # อย่าลืมเพิ่ม Environment Variable ใน Vercel:
-# NEXT_PUBLIC_GAS_URL = [GAS Web App URL]
+# GAS_URL = [GAS Web App URL]
 ```
 
 ---
