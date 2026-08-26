@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, LogIn, ImagePlus, Printer } from "lucide-react";
+import { ArrowLeft, Camera, X, CheckCircle, Loader2, Edit2, Users, LogIn, ImagePlus, Printer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { learningApi, libraryApi, roomApi, CheckIn, RoomRegistryEntry, Teacher, Student } from "@/lib/gas";
 import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
@@ -159,6 +159,13 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
     } else {
       setCiError(res.error || "บันทึกการเข้าใช้ไม่สำเร็จ");
     }
+  }
+
+  async function handleDeleteCheckIn(c: CheckIn) {
+    if (!c.ID) return;
+    if (!confirm("ต้องการลบรายการเข้าใช้นี้ใช่หรือไม่?")) return;
+    const res = await learningApi.deleteCheckIn(c.ID);
+    if (res.success) setCheckins(prev => prev.filter(x => x.ID !== c.ID));
   }
 
   function handlePrintHistory() {
@@ -508,9 +515,17 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
                       {photos.length > 0 && (
                         <img src={photos[0]} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
                       )}
-                      <p className="text-xs text-slate-400 shrink-0">
-                        {c.Timestamp ? new Date(c.Timestamp).toLocaleDateString("th-TH") : ""}
-                      </p>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <p className="text-xs text-slate-400">
+                          {c.Timestamp ? new Date(c.Timestamp).toLocaleDateString("th-TH") : ""}
+                        </p>
+                        {c.ID && (
+                          <button type="button" onClick={() => handleDeleteCheckIn(c)}
+                            className="p-1 rounded-lg text-red-400 hover:bg-red-50 hover:text-red-600">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

@@ -56,6 +56,7 @@ export type BorrowLog = {
 };
 
 export type CheckIn = {
+  ID?: string;
   RoomNumber: string;
   ชื่อครู: string;
   ชื่อนักเรียน: string;
@@ -139,7 +140,9 @@ export const learningApi = {
     imageUrl?: string;
     corner?: string;
     timestamp?: string;
-  }) => gasRequest<{ timestamp: string }>({ action: "checkIn", ...data }),
+  }) => gasRequest<{ timestamp: string; id: string }>({ action: "checkIn", ...data }),
+
+  deleteCheckIn: (id: string) => gasRequest({ action: "deleteCheckIn", id }),
 
   getCheckInsByRoom: (roomNumber: string) =>
     gasRequest<CheckIn[]>({ action: "getCheckInsByRoom", roomNumber }),

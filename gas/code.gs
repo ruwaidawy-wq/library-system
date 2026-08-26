@@ -65,6 +65,7 @@ if (e.postData) {
       case "getBorrowLog":   result = getBorrowLog(); break;
       case "rejectBorrow":   result = rejectBorrow(data); break;
       case "checkIn":        result = checkIn(data); break;
+      case "deleteCheckIn":  result = deleteCheckIn(data.id); break;
       case "getCheckInsByRoom":   result = getCheckInsByRoom(data.roomNumber); break;
       case "getAllRoomsStats":    result = getAllRoomsStats(); break;
       case "addActivity":         result = addActivity(data); break;
@@ -535,14 +536,39 @@ function checkIn(data) {
   // อนุญาตให้ระบุวัน-เวลาเข้าใช้เอง (บันทึกย้อนหลัง) ถ้าไม่ระบุมาให้ใช้เวลาปัจจุบัน
   const ts = timestamp ? new Date(timestamp) : new Date();
   sheet.appendRow([roomNumber, teacherName, studentName, received || "", ts, processImageField(imageUrl, "checkin"), corner || ""]);
+  // ใส่ ID ไว้คอลัมน์ท้ายสุด (ไม่แทรกกลางแถวเดิม) เพื่อให้ลบรายการนี้ทีหลังได้แม่นยำ
+  // โดยไม่กระทบตำแหน่งคอลัมน์อื่นที่ appendRow ด้านบนเขียนไว้ตามลำดับคงที่อยู่แล้ว
+  const rowIndex = sheet.getLastRow();
+  const id = generateID("CHK");
+  sheet.getRange(rowIndex, getOrCreateColumn(sheet, "ID")).setValue(id);
   invalidateCache("checkin_log");
-  return { success: true, timestamp: ts.toISOString() };
+  return { success: true, timestamp: ts.toISOString(), id };
 }
 
 function getCheckInsByRoom(roomNumber) {
   if (!roomNumber) return { success: false, error: "ต้องระบุห้องเรียน" };
   const data = getCheckInLogData();
   return { success: true, data: data.filter(row => String(row["RoomNumber"]) === String(roomNumber)) };
+}
+
+// ลบได้เฉพาะรายการที่เข้าใช้หลังอัปเดตนี้ (มีคอลัมน์ ID) รายการเก่าก่อนหน้าไม่มี ID
+// ให้ตรวจสอบ จะลบไม่ได้ — ป้องกันลบผิดแถวเพราะไม่มีตัวระบุที่แน่นอน
+function deleteCheckIn(id) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.CHECKIN_LOG);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).trim());
+  const idIdx = headers.indexOf("ID");
+  if (idIdx === -1) return { success: false, error: "ไม่พบคอลัมน์ ID ในชีต" };
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      sheet.deleteRow(i + 1);
+      invalidateCache("checkin_log");
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
 }
 
 function getAllRoomsStats() {
