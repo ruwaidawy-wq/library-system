@@ -154,6 +154,7 @@ function getCached(key, ttlSeconds, fetcher) {
     cache.put(key, JSON.stringify(data), ttlSeconds);
   } catch (e) {
     // ข้อมูลอาจใหญ่เกิน 100KB ต่อคีย์ ก็แค่ข้ามการ cache รอบนี้ไป ไม่ต้องทำให้ request ล้มเหลว
+    // (ถ้าข้อมูลใหญ่เกินนี้เป็นประจำ ให้ใช้ getCachedChunked แทน ไม่ใช่ฟังก์ชันนี้)
   }
   return data;
 }
@@ -162,18 +163,93 @@ function invalidateCache(key) {
   CacheService.getScriptCache().remove(key);
 }
 
-// ชีตที่เขียนบ่อยกว่า (Borrow_Log/Activities/CheckIn_Log) ใช้ TTL สั้นกว่า Teachers/Books
+// CacheService จำกัดค่าไว้ที่ 100KB ต่อ 1 คีย์ — ข้อมูลบางชีต (เช่น Books ที่มีเกือบ 2,000 แถว)
+// ใหญ่เกินขีดนี้ ทำให้ getCached ข้างบน "cache ไม่ติด" เงียบๆ ทุกครั้ง (พลาด try/catch ทุกรอบ
+// แถมยังเสียเวลา JSON.stringify ก้อนใหญ่ทิ้งเปล่าๆ ทุก request) ฟังก์ชันนี้แก้ปัญหาด้วยการ
+// สับข้อมูลเป็นชิ้นเล็กๆ ต่อคีย์ (chunk) แล้วต่อกลับตอนอ่าน
+// จำกัดไว้ที่ 30,000 ตัวอักษรต่อ chunk (ไม่ใช่ 90,000) เพราะขีด 100KB ของ CacheService
+// นับเป็นไบต์ UTF-8 ไม่ใช่จำนวนตัวอักษร ข้อความภาษาไทยกินพื้นที่ตัวละ ~3 ไบต์ ถ้าใช้ 90,000
+// ตัวอักษรกับก้อนข้อความที่เป็นภาษาไทยล้วนๆ จะกลายเป็น ~270KB เกินขีดจำกัดจริงไปมาก
+const CACHE_CHUNK_SIZE = 30000;
+const CACHE_MAX_CHUNKS = 30;
+
+function getCachedChunked(key, ttlSeconds, fetcher) {
+  const cache = CacheService.getScriptCache();
+  const countStr = cache.get(key + "_n");
+  if (countStr) {
+    const count = parseInt(countStr, 10);
+    const parts = [];
+    let ok = true;
+    for (let i = 0; i < count; i++) {
+      const part = cache.get(key + "_" + i);
+      if (part === null) { ok = false; break; }
+      parts.push(part);
+    }
+    if (ok) {
+      try { return JSON.parse(parts.join("")); } catch (e) { /* ข้อมูลเสีย ให้ไปดึงใหม่ด้านล่าง */ }
+    }
+  }
+
+  const data = fetcher();
+  try {
+    const json = JSON.stringify(data);
+    const chunks = [];
+    for (let i = 0; i < json.length; i += CACHE_CHUNK_SIZE) {
+      chunks.push(json.slice(i, i + CACHE_CHUNK_SIZE));
+    }
+    if (chunks.length > 0 && chunks.length <= CACHE_MAX_CHUNKS) {
+      const puts = {};
+      chunks.forEach((c, i) => { puts[key + "_" + i] = c; });
+      puts[key + "_n"] = String(chunks.length);
+      cache.putAll(puts, ttlSeconds);
+    }
+  } catch (e) {
+    // ข้อมูลใหญ่เกินกว่าที่ chunk ไหวจริงๆ (เกิน CACHE_MAX_CHUNKS) ก็แค่ข้ามการ cache รอบนี้ไป
+  }
+  return data;
+}
+
+function invalidateCachedChunked(key) {
+  const cache = CacheService.getScriptCache();
+  const countStr = cache.get(key + "_n");
+  const count = countStr ? parseInt(countStr, 10) : CACHE_MAX_CHUNKS;
+  const keys = [key + "_n"];
+  for (let i = 0; i < count; i++) keys.push(key + "_" + i);
+  cache.removeAll(keys);
+}
+
+// ชีตที่เขียนบ่อยกว่า (Borrow_Log/Activities) ใช้ TTL สั้นกว่า Teachers/Books
 // เพราะ invalidateCache ถูกเรียกทุกจุดที่เขียนอยู่แล้ว ค่านี้แค่กันคำขออ่านรัวๆ ไม่ให้สแกนทั้งชีตซ้ำ
 function getBorrowLogData() {
-  return getCached("borrow_log", 120, () => sheetToJSON(getSheet(SHEETS.BORROW_LOG)));
+  return getCachedChunked("borrow_log", 120, () => sheetToJSON(getSheet(SHEETS.BORROW_LOG)));
 }
 
 function getActivitiesData() {
-  return getCached("activities", 120, () => sheetToJSON(getSheet(SHEETS.ACTIVITIES)));
+  return getCachedChunked("activities", 120, () => sheetToJSON(getSheet(SHEETS.ACTIVITIES)));
 }
 
-function getCheckInLogData() {
-  return getCached("checkin_log", 120, () => sheetToJSON(getSheet(SHEETS.CHECKIN_LOG)));
+// CheckIn_Log อ่านทีละห้อง (ไม่ใช่ทั้งชีต) เพราะหน้าห้องเรียนแต่ละหน้าต้องการแค่ประวัติ
+// ของห้องตัวเอง แคชแยกคีย์ต่อห้องแบบนี้เล็กพอที่จะไม่ชนขีดจำกัด 100KB ของ CacheService
+// (ต่างจากแคชรวมทั้งชีตแบบเดิมที่ใหญ่เกินจนไม่เคย cache ติดเลยสักครั้ง)
+function getCheckInsForRoom(roomNumber) {
+  return getCached("checkin_room_" + roomNumber, 60, () =>
+    sheetToJSON(getSheet(SHEETS.CHECKIN_LOG)).filter(row => String(row["RoomNumber"]) === String(roomNumber))
+  );
+}
+
+// สรุปจำนวนครั้งเข้าใช้ต่อห้อง (ก้อนเล็กมาก) แยกจากข้อมูลดิบทั้งชีต ใช้ทั้งกับ getAllRoomsStats
+// และ getLeaderboard เพื่อไม่ต้องสแกนทั้งชีตซ้ำสองรอบสำหรับสองฟังก์ชันนี้
+function getCheckInCountsByRoom() {
+  return getCached("checkin_counts", 60, () => {
+    const data = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+    const counts = {};
+    data.forEach(row => {
+      const room = row["RoomNumber"];
+      if (!room) return;
+      counts[room] = (counts[room] || 0) + 1;
+    });
+    return counts;
+  });
 }
 
 // คืนเลขคอลัมน์ (1-indexed) ของหัวตารางชื่อ headerName ในชีต ถ้ายังไม่มีคอลัมน์นี้จะสร้างเพิ่มให้อัตโนมัติ
@@ -240,7 +316,7 @@ function getStudents() {
 }
 
 function getBooks() {
-  return { success: true, data: getCached("books", 300, () => sheetToJSON(getSheet(SHEETS.BOOKS))) };
+  return { success: true, data: getCachedChunked("books", 300, () => sheetToJSON(getSheet(SHEETS.BOOKS))) };
 }
 
 function checkOverdue(teacherName) {
@@ -295,8 +371,8 @@ logSheet.appendRow([
       break;
     }
   }
-  invalidateCache("books");
-  invalidateCache("borrow_log");
+  invalidateCachedChunked("books");
+  invalidateCachedChunked("borrow_log");
 
   sendLineNotify(`📚 คำขอยืมหนังสือใหม่\nครู: ${teacherName}\nหนังสือ: ${book["ชื่อหนังสือ"]} (${bookId})\nกำหนดคืน: ${dueDate}`);
   return { success: true, borrowId: id };
@@ -340,8 +416,8 @@ function approveBorrow(data) {
       break;
     }
   }
-  invalidateCache("books");
-  invalidateCache("borrow_log");
+  invalidateCachedChunked("books");
+  invalidateCachedChunked("borrow_log");
 
   const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
   const dueDate = rowData[headers.indexOf("กำหนดคืน")];
@@ -389,14 +465,14 @@ function returnBook(data) {
     if (data.actualReturnDate) {
       sheet.getRange(rowIndex, returnDateIdx + 1).setValue(new Date(data.actualReturnDate));
     }
-    invalidateCache("borrow_log");
+    invalidateCachedChunked("borrow_log");
     return { success: true, fine: 0 };
   }
 
   if (returnStatus === "rejected") {
     // Admin ปฏิเสธ — กลับเป็นยืมอยู่
     sheet.getRange(rowIndex, statusIdx + 1).setValue("ยืมอยู่");
-    invalidateCache("borrow_log");
+    invalidateCachedChunked("borrow_log");
     return { success: true, fine: 0 };
   }
 
@@ -428,7 +504,7 @@ if (todayDate > dueDateOnly) {
   sheet.getRange(rowIndex, returnDateIdx + 1).setValue(today);
   sheet.getRange(rowIndex, statusIdx + 1).setValue(newStatus);
   sheet.getRange(rowIndex, fineIdx + 1).setValue(fine);
-  invalidateCache("borrow_log");
+  invalidateCachedChunked("borrow_log");
 
   // อัปเดตสถานะหนังสือ
   if (returnStatus !== "lost") {
@@ -442,7 +518,7 @@ if (todayDate > dueDateOnly) {
         break;
       }
     }
-    invalidateCache("books");
+    invalidateCachedChunked("books");
   }
 
   const teacherName = rowData[headers.indexOf("ชื่อผู้ยืม")];
@@ -495,8 +571,8 @@ function rejectBorrow(data) {
       break;
     }
   }
-  invalidateCache("books");
-  invalidateCache("borrow_log");
+  invalidateCachedChunked("books");
+  invalidateCachedChunked("borrow_log");
 
   return { success: true };
 }
@@ -519,7 +595,7 @@ function updatePaymentStatus(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === borrowId) {
       sheet.getRange(i + 1, payIdx + 1).setValue(paymentStatus);
-      invalidateCache("borrow_log");
+      invalidateCachedChunked("borrow_log");
       return { success: true };
     }
   }
@@ -543,14 +619,15 @@ function checkIn(data) {
   const rowIndex = sheet.getLastRow();
   const id = generateID("CHK");
   sheet.getRange(rowIndex, getOrCreateColumn(sheet, "ID")).setValue(id);
-  invalidateCache("checkin_log");
+  invalidateCache("checkin_room_" + roomNumber);
+  invalidateCache("checkin_counts");
+  invalidateCache("public_library_stats");
   return { success: true, timestamp: ts.toISOString(), id };
 }
 
 function getCheckInsByRoom(roomNumber) {
   if (!roomNumber) return { success: false, error: "ต้องระบุห้องเรียน" };
-  const data = getCheckInLogData();
-  return { success: true, data: data.filter(row => String(row["RoomNumber"]) === String(roomNumber)) };
+  return { success: true, data: getCheckInsForRoom(roomNumber) };
 }
 
 // ลบได้เฉพาะรายการที่เข้าใช้หลังอัปเดตนี้ (มีคอลัมน์ ID) รายการเก่าก่อนหน้าไม่มี ID
@@ -562,12 +639,15 @@ function deleteCheckIn(id) {
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0].map(h => String(h).trim());
   const idIdx = headers.indexOf("ID");
+  const roomIdx = headers.indexOf("RoomNumber");
   if (idIdx === -1) return { success: false, error: "ไม่พบคอลัมน์ ID ในชีต" };
 
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.deleteRow(i + 1);
-      invalidateCache("checkin_log");
+      invalidateCache("checkin_room_" + allData[i][roomIdx]);
+      invalidateCache("checkin_counts");
+      invalidateCache("public_library_stats");
       return { success: true };
     }
   }
@@ -582,6 +662,7 @@ function requestDeleteCheckIn(id, requestedBy) {
   const allData = sheet.getDataRange().getValues();
   const headers = allData[0].map(h => String(h).trim());
   const idIdx = headers.indexOf("ID");
+  const roomIdx = headers.indexOf("RoomNumber");
   if (idIdx === -1) return { success: false, error: "ไม่พบคอลัมน์ ID ในชีต" };
   const statusCol = getOrCreateColumn(sheet, "สถานะ");
   const requestedByCol = getOrCreateColumn(sheet, "ผู้ขอลบ");
@@ -590,7 +671,7 @@ function requestDeleteCheckIn(id, requestedBy) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusCol).setValue("รอลบ");
       sheet.getRange(i + 1, requestedByCol).setValue(requestedBy || "");
-      invalidateCache("checkin_log");
+      invalidateCache("checkin_room_" + allData[i][roomIdx]);
       return { success: true };
     }
   }
@@ -606,13 +687,14 @@ function cancelDeleteCheckIn(id) {
   const idIdx = headers.indexOf("ID");
   const statusIdx = headers.indexOf("สถานะ");
   const requestedByIdx = headers.indexOf("ผู้ขอลบ");
+  const roomIdx = headers.indexOf("RoomNumber");
   if (idIdx === -1 || statusIdx === -1) return { success: false, error: "ไม่พบข้อมูล" };
 
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusIdx + 1).setValue("");
       if (requestedByIdx !== -1) sheet.getRange(i + 1, requestedByIdx + 1).setValue("");
-      invalidateCache("checkin_log");
+      invalidateCache("checkin_room_" + allData[i][roomIdx]);
       return { success: true };
     }
   }
@@ -620,14 +702,7 @@ function cancelDeleteCheckIn(id) {
 }
 
 function getAllRoomsStats() {
-  const data = getCheckInLogData();
-  const stats = {};
-  data.forEach(row => {
-    const room = row["RoomNumber"];
-    if (!stats[room]) stats[room] = 0;
-    stats[room]++;
-  });
-  return { success: true, data: stats };
+  return { success: true, data: getCheckInCountsByRoom() };
 }
 
 function addActivity(data) {
@@ -662,7 +737,8 @@ function addActivity(data) {
     const timeCol = getOrCreateColumn(sheet, "เวลา");
     sheet.getRange(rowIndex, timeCol).setNumberFormat("@").setValue(time);
   }
-  invalidateCache("activities");
+  invalidateCachedChunked("activities");
+  invalidateCache("public_library_stats");
 
   // แจ้ง Line Notify ไปยัง Admin
   sendLineNotify(`📋 บันทึกกิจกรรมใหม่\nห้อง: ${roomNumber}\nผู้บันทึก: ${recorder} (${position})\nกิจกรรม: ${activityDetail}`);
@@ -685,7 +761,7 @@ function updateActivityStatus(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusIdx + 1).setValue(status);
-      invalidateCache("activities");
+      invalidateCachedChunked("activities");
       return { success: true };
     }
   }
@@ -702,7 +778,8 @@ function deleteActivity(data) {
   for (let i = 1; i < allData.length; i++) {
     if (allData[i][idIdx] === id) {
       sheet.deleteRow(i + 1);
-      invalidateCache("activities");
+      invalidateCachedChunked("activities");
+      invalidateCache("public_library_stats");
       return { success: true };
     }
   }
@@ -715,13 +792,7 @@ function getActivitiesByRoom(roomNumber) {
 }
 
 function getLeaderboard() {
-  const data = getCheckInLogData();
-  const counts = {};
-  data.forEach(row => {
-    const room = row["RoomNumber"];
-    if (!counts[room]) counts[room] = 0;
-    counts[room]++;
-  });
+  const counts = getCheckInCountsByRoom();
   const sorted = Object.entries(counts)
     .map(([room, count]) => ({ room, count }))
     .sort((a, b) => b.count - a.count)
@@ -1026,15 +1097,21 @@ function deleteLibraryStats(id) {
 // สรุปจำนวนครั้งที่เข้าใช้แต่ละห้องเรียน/แหล่งเรียนรู้ (รวม CheckIn_Log ทุกห้อง + งานห้องสมุด)
 // และความถี่การเข้าใช้ของครูรายเดือนย้อนหลัง 12 เดือน (นับจำนวนครั้งเท่านั้น ไม่ระบุชื่อ)
 function getPublicLibraryStats() {
+  // เก็บแค่ผลสรุป (ก้อนเล็ก) ไม่เก็บ checkins/activities ดิบทั้งชีต เพราะดิบทั้งชีตมักใหญ่เกิน
+  // ขีดจำกัด 100KB ของ CacheService ต่อคีย์ (มี URL รูปภาพติดอยู่แทบทุกแถว)
+  return { success: true, data: getCached("public_library_stats", 300, computePublicLibraryStats) };
+}
+
+function computePublicLibraryStats() {
   const roomUsage = {};
-  const checkins = getCheckInLogData();
+  const checkins = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
   checkins.forEach(row => {
     const room = row["RoomNumber"];
     if (!room) return;
     roomUsage[room] = (roomUsage[room] || 0) + 1;
   });
 
-  const activities = getActivitiesData();
+  const activities = sheetToJSON(getSheet(SHEETS.ACTIVITIES));
   activities.forEach(row => {
     const room = row["ห้องเรียน"];
     if (!room) return;
@@ -1062,8 +1139,5 @@ function getPublicLibraryStats() {
     teacherMonthlyFrequency.push({ month: key, count: monthlyMap[key] || 0 });
   }
 
-  return {
-    success: true,
-    data: { roomUsage, teacherMonthlyFrequency }
-  };
+  return { roomUsage, teacherMonthlyFrequency };
 }
