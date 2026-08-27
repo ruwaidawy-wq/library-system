@@ -113,14 +113,22 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
   }
 
   async function handleApprove(entry: RoomRegistryEntry) {
-    await roomApi.approveRoomRegistryEntry(entry.ID);
-    onReload();
+    const res = await roomApi.approveRoomRegistryEntry(entry.ID);
+    if (res.success) {
+      onReload();
+    } else {
+      alert(`อนุมัติไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
   }
 
   async function handleDelete(entry: RoomRegistryEntry) {
     if (!confirm(`ต้องการลบ "${entry.ชื่อ || entry.ประเภท || "รายการนี้"}" ใช่หรือไม่?`)) return;
-    await roomApi.deleteRoomRegistryEntry(entry.ID);
-    onReload();
+    const res = await roomApi.deleteRoomRegistryEntry(entry.ID);
+    if (res.success) {
+      onReload();
+    } else {
+      alert(`ลบไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
   }
 
   // แสดงทุกรายการของห้องนี้เสมอ (รวมที่รออนุมัติด้วย) ไม่ใช่แค่โหมด Admin

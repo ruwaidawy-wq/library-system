@@ -90,8 +90,12 @@ export default function LibraryStatsForm() {
 
   async function handleDelete(id: string) {
     if (!confirm("ต้องการลบสถิติเดือนนี้ใช่หรือไม่?")) return;
-    await statsApi.deleteLibraryStats(id);
-    loadHistory();
+    const res = await statsApi.deleteLibraryStats(id);
+    if (res.success) {
+      loadHistory();
+    } else {
+      alert(`ลบไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
   }
 
   const staffTotalNum = Number(staffTotal) || 0;

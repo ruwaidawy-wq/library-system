@@ -123,6 +123,8 @@ returnBook: (data: {
 
   rejectBorrow: (borrowId: string) => gasRequest({ action: "rejectBorrow", borrowId }),
 
+  approveBorrow: (borrowId: string) => gasRequest({ action: "approveBorrow", borrowId }),
+
   updatePaymentStatus: (borrowId: string, paymentStatus: string) =>
     gasRequest({ action: "updatePaymentStatus", borrowId, paymentStatus }),
 };

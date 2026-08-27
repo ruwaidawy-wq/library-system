@@ -112,24 +112,19 @@ async function handleApprove(log: BorrowLog) {
   const fine = parseFloat(fineInputs[log.ID] || "0") || 0;
   const actualReturnDate = returnDateInputs[log.ID] || new Date().toISOString().split("T")[0];
 
-  const res = await fetch("/api/gas", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      action: "returnBook",
-      borrowId: log.ID,
-      returnStatus: "normal",
-      manualFine: fine,
-      actualReturnDate,
-    }),
+  const res = await libraryApi.returnBook({
+    borrowId: log.ID,
+    returnStatus: "normal",
+    manualFine: fine,
+    actualReturnDate,
   });
-const data = await res.json();
-console.log("returnBook response:", data);
-setProcessing(null);
-if (data.success) {
+  setProcessing(null);
+  if (res.success) {
     setBorrowSuccess(`อนุมัติการคืนหนังสือ ${log.รหัสหนังสือ} แล้ว`);
     setTimeout(() => setBorrowSuccess(""), 3000);
     loadLogs();
+  } else {
+    setBorrowSuccess(`เกิดข้อผิดพลาด: ${res.error}`);
   }
 }
 
@@ -148,40 +143,43 @@ if (data.success) {
 
   async function handleRejectReturn(log: BorrowLog) {
     setProcessing(log.ID);
-    await libraryApi.returnBook({ borrowId: log.ID, returnStatus: "rejected" });
+    const res = await libraryApi.returnBook({ borrowId: log.ID, returnStatus: "rejected" });
     setProcessing(null);
-    setBorrowSuccess(`ปฏิเสธคำขอคืน ${log.รหัสหนังสือ} แล้ว`);
-    setTimeout(() => setBorrowSuccess(""), 3000);
-    loadLogs();
+    if (res.success) {
+      setBorrowSuccess(`ปฏิเสธคำขอคืน ${log.รหัสหนังสือ} แล้ว`);
+      setTimeout(() => setBorrowSuccess(""), 3000);
+      loadLogs();
+    } else {
+      setBorrowSuccess(`เกิดข้อผิดพลาด: ${res.error}`);
+    }
   }
 
   async function handleApproveBorrow(log: BorrowLog) {
     setProcessing(log.ID);
-    const res = await fetch("/api/gas", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "approveBorrow", borrowId: log.ID }),
-    });
-    const data = await res.json();
+    const res = await libraryApi.approveBorrow(log.ID);
     setProcessing(null);
-    if (data.success) {
+    if (res.success) {
       setBorrowSuccess(`อนุมัติการยืมหนังสือ ${log.รหัสหนังสือ} แล้ว`);
       setTimeout(() => setBorrowSuccess(""), 3000);
       loadLogs();
     } else {
-      setBorrowSuccess(`เกิดข้อผิดพลาด: ${data.error}`);
+      setBorrowSuccess(`เกิดข้อผิดพลาด: ${res.error}`);
     }
   }
 
   async function handleActivityDelete(act: Activity) {
     if (!confirm(`ต้องการลบบันทึกกิจกรรมของ ${act.ผู้บันทึก} ใช่หรือไม่?`)) return;
     setProcessing(act.ID);
-    await activityApi.deleteActivity(act.ID);
+    const res = await activityApi.deleteActivity(act.ID);
     setProcessing(null);
-    setActSuccess("ลบบันทึกกิจกรรมแล้ว");
-    setTimeout(() => setActSuccess(""), 3000);
-    loadActivities();
-    setSelectedActivity(null);
+    if (res.success) {
+      setActSuccess("ลบบันทึกกิจกรรมแล้ว");
+      setTimeout(() => setActSuccess(""), 3000);
+      loadActivities();
+      setSelectedActivity(null);
+    } else {
+      setActSuccess(`เกิดข้อผิดพลาด: ${res.error}`);
+    }
   }
 
   async function handleRegistryApprove(entry: RoomRegistryEntry) {
@@ -807,16 +805,12 @@ if (data.success) {
               ) : (
                 <button
                   onClick={async () => {
-                    await fetch("/api/gas", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        action: "updatePaymentStatus",
-                        borrowId: log.ID,
-                        paymentStatus: "ชำระแล้ว",
-                      }),
-                    });
-                    loadLogs();
+                    const res = await libraryApi.updatePaymentStatus(log.ID, "ชำระแล้ว");
+                    if (res.success) {
+                      loadLogs();
+                    } else {
+                      setBorrowSuccess(`เกิดข้อผิดพลาด: ${res.error}`);
+                    }
                   }}
                   className="text-xs px-2 py-1 rounded-full font-medium border border-orange-300 text-orange-600 hover:bg-orange-50 transition-all"
                 >
