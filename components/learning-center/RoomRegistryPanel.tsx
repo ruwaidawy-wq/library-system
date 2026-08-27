@@ -24,6 +24,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [submittedPending, setSubmittedPending] = useState(false);
+  const [formError, setFormError] = useState("");
 
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState("");
@@ -49,6 +50,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
 
   function openAdd() {
     resetForm();
+    setFormError("");
     setShowForm(true);
   }
 
@@ -61,6 +63,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
     setFormResponsibleList(entry.ผู้รับผิดชอบ ? entry.ผู้รับผิดชอบ.split("\n").filter(Boolean) : []);
     setFormEstablished(entry.วันที่จัดตั้ง || "");
     setFormPhotos(entry.รูปภาพURL ? entry.รูปภาพURL.split(",").filter(Boolean) : []);
+    setFormError("");
     setShowForm(true);
   }
 
@@ -76,6 +79,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
+    setFormError("");
     const payload = {
       name: formName,
       type: formType,
@@ -86,16 +90,19 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
       imageUrl: formPhotos.join("|||"),
     };
     const isNewEntry = !editingId;
-    if (editingId) {
-      await roomApi.updateRoomRegistryEntry({ id: editingId, ...payload });
-    } else {
-      await roomApi.addRoomRegistryEntry({
-        roomId,
-        ...payload,
-        status: isAdminMode ? "อนุมัติแล้ว" : "รออนุมัติ",
-      });
-    }
+    const res = editingId
+      ? await roomApi.updateRoomRegistryEntry({ id: editingId, ...payload })
+      : await roomApi.addRoomRegistryEntry({
+          roomId,
+          ...payload,
+          status: isAdminMode ? "อนุมัติแล้ว" : "รออนุมัติ",
+        });
     setSaving(false);
+    if (!res.success) {
+      // ไม่ปิดฟอร์ม/ไม่ล้างข้อมูลที่กรอกไว้ เพื่อให้กดบันทึกซ้ำได้โดยไม่ต้องกรอกใหม่ทั้งหมด
+      setFormError(res.error || "บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+      return;
+    }
     setShowForm(false);
     resetForm();
     onReload();
@@ -151,6 +158,11 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
 
       {showForm && (
         <form onSubmit={handleSubmit} className="border-2 border-dashed border-slate-200 rounded-xl p-4 space-y-3">
+          {formError && (
+            <div className="bg-red-50 border border-red-300 rounded-xl p-3 text-red-700 text-sm">
+              {formError}
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-500 mb-1">
               ชื่อ <span className="text-red-500">*</span>
@@ -232,7 +244,7 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               บันทึก
             </button>
-            <button type="button" onClick={() => { setShowForm(false); resetForm(); }}
+            <button type="button" onClick={() => { setShowForm(false); resetForm(); setFormError(""); }}
               className="px-4 py-2.5 rounded-xl border-2 border-slate-200 text-slate-500 text-sm">
               ยกเลิก
             </button>
