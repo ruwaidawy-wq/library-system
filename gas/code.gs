@@ -69,6 +69,7 @@ if (e.postData) {
       case "requestDeleteCheckIn": result = requestDeleteCheckIn(data.id, data.requestedBy); break;
       case "cancelDeleteCheckIn":  result = cancelDeleteCheckIn(data.id); break;
       case "getCheckInsByRoom":   result = getCheckInsByRoom(data.roomNumber); break;
+      case "getPendingCheckInDeletions": result = getPendingCheckInDeletions(); break;
       case "getAllRoomsStats":    result = getAllRoomsStats(); break;
       case "addActivity":         result = addActivity(data); break;
       case "getActivitiesByRoom": result = getActivitiesByRoom(data.roomNumber); break;
@@ -628,6 +629,14 @@ function checkIn(data) {
 function getCheckInsByRoom(roomNumber) {
   if (!roomNumber) return { success: false, error: "ต้องระบุห้องเรียน" };
   return { success: true, data: getCheckInsForRoom(roomNumber) };
+}
+
+// รวมคำขอลบประวัติการเข้าใช้ที่รออนุมัติจากทุกห้องไว้ที่เดียว ให้ Admin เห็นได้จากหน้ากลาง
+// โดยไม่ต้องไล่ปลดล็อก Admin Mode เข้าไปดูทีละห้อง — อ่านสดจากชีตเสมอ (ไม่แคช) เพราะ
+// เป็น request ที่ไม่ได้เรียกถี่ และต้องเห็นคำขอใหม่ทันทีไม่ใช่รอ TTL หมดอายุ
+function getPendingCheckInDeletions() {
+  const data = sheetToJSON(getSheet(SHEETS.CHECKIN_LOG));
+  return { success: true, data: data.filter(row => row["สถานะ"] === "รอลบ") };
 }
 
 // ลบได้เฉพาะรายการที่เข้าใช้หลังอัปเดตนี้ (มีคอลัมน์ ID) รายการเก่าก่อนหน้าไม่มี ID

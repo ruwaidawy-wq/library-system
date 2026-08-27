@@ -152,6 +152,9 @@ export const learningApi = {
   getCheckInsByRoom: (roomNumber: string) =>
     gasRequest<CheckIn[]>({ action: "getCheckInsByRoom", roomNumber }),
 
+  getPendingCheckInDeletions: () =>
+    gasRequest<CheckIn[]>({ action: "getPendingCheckInDeletions" }),
+
   getAllRoomsStats: () =>
     gasRequest<Record<string, number>>({ action: "getAllRoomsStats" }),
 

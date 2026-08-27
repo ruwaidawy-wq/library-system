@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap, BarChart3, Printer } from "lucide-react";
-import { libraryApi, activityApi, roomApi, BorrowLog, Activity, RoomRegistryEntry } from "@/lib/gas";
+import { libraryApi, activityApi, roomApi, learningApi, BorrowLog, Activity, RoomRegistryEntry, CheckIn } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import LibraryStatsForm from "@/components/library/LibraryStatsForm";
 import { escapeHtml } from "@/lib/htmlUtils";
@@ -67,6 +67,10 @@ export default function AdminPage() {
   const [registrySuccess, setRegistrySuccess] = useState("");
   const [registryError, setRegistryError] = useState("");
 
+  const [pendingDeletions, setPendingDeletions] = useState<CheckIn[]>([]);
+  const [loadingDeletions, setLoadingDeletions] = useState(false);
+  const [deletionSuccess, setDeletionSuccess] = useState("");
+
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
@@ -103,8 +107,15 @@ export default function AdminPage() {
     setLoadingRegistry(false);
   }
 
+  async function loadPendingDeletions() {
+    setLoadingDeletions(true);
+    const res = await learningApi.getPendingCheckInDeletions();
+    if (res.success && res.data) setPendingDeletions(res.data);
+    setLoadingDeletions(false);
+  }
+
   useEffect(() => {
-    if (isLoggedIn) { loadLogs(); loadActivities(); loadRegistry(); }
+    if (isLoggedIn) { loadLogs(); loadActivities(); loadRegistry(); loadPendingDeletions(); }
   }, [isLoggedIn]);
 
 async function handleApprove(log: BorrowLog) {
@@ -207,6 +218,34 @@ async function handleApprove(log: BorrowLog) {
       setRegistryError(res.error || "ลบไม่สำเร็จ");
     }
     loadRegistry();
+  }
+
+  async function handleConfirmDeleteCheckIn(entry: CheckIn) {
+    if (!entry.ID) return;
+    setProcessing(entry.ID);
+    const res = await learningApi.deleteCheckIn(entry.ID);
+    setProcessing(null);
+    if (res.success) {
+      setDeletionSuccess("ลบประวัติการเข้าใช้แล้ว");
+      setTimeout(() => setDeletionSuccess(""), 3000);
+      loadPendingDeletions();
+    } else {
+      alert(`ลบไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
+  }
+
+  async function handleCancelDeleteCheckIn(entry: CheckIn) {
+    if (!entry.ID) return;
+    setProcessing(entry.ID);
+    const res = await learningApi.cancelDeleteCheckIn(entry.ID);
+    setProcessing(null);
+    if (res.success) {
+      setDeletionSuccess("ยกเลิกคำขอลบแล้ว");
+      setTimeout(() => setDeletionSuccess(""), 3000);
+      loadPendingDeletions();
+    } else {
+      alert(`ยกเลิกคำขอไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
   }
 
   function handlePrintRegistry() {
@@ -519,9 +558,9 @@ async function handleApprove(log: BorrowLog) {
           <p className="text-slate-400 text-sm">จัดการระบบห้องสมุดและแหล่งเรียนรู้</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => { loadLogs(); loadActivities(); loadRegistry(); }}
+          <button onClick={() => { loadLogs(); loadActivities(); loadRegistry(); loadPendingDeletions(); }}
             className="p-2 rounded-xl bg-white shadow text-slate-500 hover:bg-slate-50">
-            <RefreshCw size={18} className={(loadingLogs || loadingAct || loadingRegistry) ? "animate-spin" : ""} />
+            <RefreshCw size={18} className={(loadingLogs || loadingAct || loadingRegistry || loadingDeletions) ? "animate-spin" : ""} />
           </button>
           <button onClick={() => setIsLoggedIn(false)}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white shadow text-slate-600 text-sm font-medium">
@@ -529,6 +568,49 @@ async function handleApprove(log: BorrowLog) {
           </button>
         </div>
       </div>
+
+      {/* แจ้งเตือน: คำขอลบประวัติการเข้าใช้ (รวมทุกห้อง) */}
+      {deletionSuccess && (
+        <div className="no-print bg-green-50 border-2 border-green-300 rounded-xl p-4 mb-4 flex items-center gap-3">
+          <CheckCircle size={20} className="text-green-600" />
+          <span className="text-green-800 font-medium">{deletionSuccess}</span>
+        </div>
+      )}
+      {pendingDeletions.length > 0 && (
+        <div className="no-print bg-white rounded-2xl shadow p-5 mb-6 border-2 border-purple-200">
+          <h2 className="font-semibold text-lg mb-3 flex items-center gap-2" style={{ color: "#7c3aed" }}>
+            <AlertCircle size={18} /> คำขอลบประวัติการเข้าใช้ ({pendingDeletions.length})
+          </h2>
+          <div className="space-y-3">
+            {pendingDeletions.map((entry, i) => (
+              <div key={entry.ID || i} className="border border-purple-100 bg-purple-50/40 rounded-xl p-3 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs text-slate-400">{ALL_ROOMS[entry.RoomNumber] || entry.RoomNumber}</p>
+                  <p className="font-medium text-slate-800 text-sm">
+                    {entry.ชื่อนักเรียน ? entry.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ") : "-"}
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    {entry.Timestamp ? new Date(entry.Timestamp).toLocaleDateString("th-TH") : ""}
+                  </p>
+                  {entry.ผู้ขอลบ && (
+                    <p className="text-xs text-purple-600 mt-1">ขอลบโดย: {entry.ผู้ขอลบ}</p>
+                  )}
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <button onClick={() => handleConfirmDeleteCheckIn(entry)} disabled={processing === entry.ID}
+                    className="p-2 rounded-lg text-green-500 hover:bg-green-50 disabled:opacity-40" title="ยืนยันลบ">
+                    <CheckCircle size={16} />
+                  </button>
+                  <button onClick={() => handleCancelDeleteCheckIn(entry)} disabled={processing === entry.ID}
+                    className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-40" title="ยกเลิกคำขอลบ">
+                    <XCircle size={16} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="no-print grid grid-cols-3 gap-3 mb-6">
