@@ -4,6 +4,7 @@ import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, Ale
 import { libraryApi, activityApi, roomApi, learningApi, BorrowLog, Activity, RoomRegistryEntry, CheckIn } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import LibraryStatsForm from "@/components/library/LibraryStatsForm";
+import CoverageDonut from "@/components/CoverageDonut";
 import { escapeHtml } from "@/lib/htmlUtils";
 
 const ADMIN_PASSWORD = "admin1234";
@@ -42,22 +43,6 @@ const ALL_ROOMS: Record<string, string> = {
   "room-23": "ห้องเรียน ๒๓ (หน่วยบริการรัตภูมิ)",
   "room-24": "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)",
 };
-
-function CoverageDonut({ percent }: { percent: number }) {
-  const radius = 40;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference * (1 - percent / 100);
-  return (
-    <svg viewBox="0 0 100 100" className="w-24 h-24 shrink-0" role="img" aria-label={`${percent}%`}>
-      <circle cx="50" cy="50" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
-      <circle cx="50" cy="50" r={radius} fill="none" stroke="#065f46" strokeWidth="12"
-        strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
-        transform="rotate(-90 50 50)" />
-      <text x="50" y="50" textAnchor="middle" dominantBaseline="central"
-        fontSize="22" fontWeight="700" fill="#1e3a5f">{percent}%</text>
-    </svg>
-  );
-}
 
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -1247,7 +1232,7 @@ async function handleApprove(log: BorrowLog) {
         </div>
       )}
 
-      {activeTab === "stats" && <LibraryStatsForm />}
+      {activeTab === "stats" && <LibraryStatsForm totalRooms={totalRoomsCount} />}
     </div>
   );
 }

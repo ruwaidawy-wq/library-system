@@ -1,7 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { CheckCircle, Loader2, Printer, RefreshCw, Trash2 } from "lucide-react";
-import { statsApi, LibraryStat } from "@/lib/gas";
+import { statsApi, roomApi, learningApi, libraryApi, LibraryStat } from "@/lib/gas";
+import CoverageDonut from "@/components/CoverageDonut";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 
@@ -19,7 +20,7 @@ function percent(used: number, total: number) {
   return ((used / total) * 100).toFixed(2);
 }
 
-export default function LibraryStatsForm() {
+export default function LibraryStatsForm({ totalRooms }: { totalRooms: number }) {
   const now = new Date();
   const [monthValue, setMonthValue] = useState(
     `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
@@ -38,6 +39,12 @@ export default function LibraryStatsForm() {
   const [history, setHistory] = useState<LibraryStat[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
 
+  const [learningResourceTotal, setLearningResourceTotal] = useState(0);
+  const [roomsWithRegistry, setRoomsWithRegistry] = useState(0);
+  const [checkinTotal, setCheckinTotal] = useState(0);
+  const [borrowTotal, setBorrowTotal] = useState(0);
+  const [loadingOverview, setLoadingOverview] = useState(true);
+
   const [year, month] = monthValue.split("-").map(Number);
   const monthLabel = THAI_MONTHS[month - 1] || "";
   const yearLabel = toBuddhistYear(year);
@@ -50,7 +57,29 @@ export default function LibraryStatsForm() {
     });
   };
 
-  useEffect(() => { loadHistory(); }, []);
+  const loadOverview = () => {
+    setLoadingOverview(true);
+    Promise.all([
+      roomApi.getRoomRegistry(),
+      learningApi.getAllRoomsStats(),
+      libraryApi.getBorrowLog(),
+    ]).then(([registryRes, checkinRes, borrowRes]) => {
+      if (registryRes.success && registryRes.data) {
+        const approved = registryRes.data.filter((e) => e.สถานะ === "อนุมัติแล้ว");
+        setLearningResourceTotal(approved.length);
+        setRoomsWithRegistry(new Set(approved.map((e) => e.RoomID)).size);
+      }
+      if (checkinRes.success && checkinRes.data) {
+        setCheckinTotal(Object.values(checkinRes.data).reduce((a, b) => a + b, 0));
+      }
+      if (borrowRes.success && borrowRes.data) setBorrowTotal(borrowRes.data.length);
+      setLoadingOverview(false);
+    });
+  };
+
+  useEffect(() => { loadHistory(); loadOverview(); }, []);
+
+  const roomCoveragePercent = totalRooms > 0 ? Math.round((roomsWithRegistry / totalRooms) * 100) : 0;
 
   async function handleAutoCount() {
     setCounting(true);
@@ -105,6 +134,43 @@ export default function LibraryStatsForm() {
 
   return (
     <div className="print-area bg-white rounded-2xl shadow p-6">
+      <div className="mb-6 pb-6 border-b border-slate-200">
+        <h2 className="font-semibold text-lg mb-3" style={{ color: "#1e3a5f" }}>
+          ภาพรวมการเข้าใช้แหล่งเรียนรู้และห้องสมุด
+        </h2>
+        {loadingOverview ? (
+          <div className="flex justify-center py-8">
+            <Loader2 size={28} className="animate-spin text-slate-400" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="rounded-xl border border-slate-200 p-4 flex items-center gap-4">
+              <CoverageDonut percent={roomCoveragePercent} />
+              <div>
+                <p className="text-xs text-slate-500">ห้องที่มีแหล่งเรียนรู้แล้ว</p>
+                <p className="text-lg font-bold" style={{ color: "#1e3a5f" }}>
+                  {roomsWithRegistry} <span className="text-slate-400 font-normal text-sm">จาก {totalRooms} ห้อง</span>
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-center">
+              <p className="text-xs text-slate-500 mb-1">แหล่งเรียนรู้ทั้งหมด</p>
+              <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{learningResourceTotal}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-center">
+              <p className="text-xs text-slate-500 mb-1">การเข้าใช้แหล่งเรียนรู้ทั้งหมด</p>
+              <p className="text-3xl font-bold" style={{ color: "#f59e0b" }}>{checkinTotal}</p>
+              <p className="text-xs text-slate-400 mt-0.5">ครั้ง (นับทุกห้อง)</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 p-4 flex flex-col justify-center">
+              <p className="text-xs text-slate-500 mb-1">การเข้าใช้บริการห้องสมุด</p>
+              <p className="text-3xl font-bold" style={{ color: "#3b82f6" }}>{borrowTotal}</p>
+              <p className="text-xs text-slate-400 mt-0.5">ครั้ง (ยืม-คืนหนังสือ)</p>
+            </div>
+          </div>
+        )}
+      </div>
+
       {success && (
         <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
           <CheckCircle size={16} className="text-green-600" />
