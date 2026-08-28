@@ -185,7 +185,14 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
   }
 
   function handlePrintHistory() {
-    const rows = checkins.map((c, i) => {
+    // เรียงตามวันที่เข้าใช้จริง ไม่ใช่ลำดับแถวในชีต เพราะรายการที่บันทึกย้อนหลัง
+    // จะถูกเพิ่มไว้ท้ายชีตเสมอ ไม่ว่าวันที่จะเก่ากว่าแถวอื่นแค่ไหนก็ตาม
+    const sortedCheckins = [...checkins].sort((a, b) => {
+      const ta = a.Timestamp ? new Date(a.Timestamp).getTime() : 0;
+      const tb = b.Timestamp ? new Date(b.Timestamp).getTime() : 0;
+      return ta - tb;
+    });
+    const rows = sortedCheckins.map((c, i) => {
       const students = c.ชื่อนักเรียน ? escapeHtml(c.ชื่อนักเรียน.split("\n").filter(Boolean).join(", ")) : "-";
       const teachers = c.ชื่อครู ? escapeHtml(c.ชื่อครู.split("\n").filter(Boolean).join(", ")) : "-";
       const d = c.Timestamp ? new Date(c.Timestamp) : null;
