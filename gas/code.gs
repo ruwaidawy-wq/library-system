@@ -374,6 +374,7 @@ logSheet.appendRow([
   }
   invalidateCachedChunked("books");
   invalidateCachedChunked("borrow_log");
+  invalidateCache("public_library_stats");
 
   sendLineNotify(`📚 คำขอยืมหนังสือใหม่\nครู: ${teacherName}\nหนังสือ: ${book["ชื่อหนังสือ"]} (${bookId})\nกำหนดคืน: ${dueDate}`);
   return { success: true, borrowId: id };
@@ -961,6 +962,7 @@ function approveRoomRegistryEntry(id) {
     if (allData[i][idIdx] === id) {
       sheet.getRange(i + 1, statusIdx + 1).setValue("อนุมัติแล้ว");
       invalidateCache("room_registry");
+      invalidateCache("public_library_stats");
       return { success: true };
     }
   }
@@ -1004,6 +1006,7 @@ function deleteRoomRegistryEntry(id) {
     if (allData[i][idIdx] === id) {
       sheet.deleteRow(i + 1);
       invalidateCache("room_registry");
+      invalidateCache("public_library_stats");
       return { success: true };
     }
   }
@@ -1148,5 +1151,14 @@ function computePublicLibraryStats() {
     teacherMonthlyFrequency.push({ month: key, count: monthlyMap[key] || 0 });
   }
 
-  return { roomUsage, teacherMonthlyFrequency };
+  // เฉพาะตัวเลขสรุป ไม่ส่งชื่อ/รายละเอียดรายบุคคล (ผู้รับผิดชอบ, ผู้ยืม ฯลฯ) ออกไปในหน้าสาธารณะ
+  const registry = sheetToJSON(getSheet(SHEETS.ROOM_REGISTRY));
+  const approvedRegistry = registry.filter(row => row["สถานะ"] === "อนุมัติแล้ว");
+  const learningResourceTotal = approvedRegistry.length;
+  const roomsWithRegistryCount = new Set(approvedRegistry.map(row => row["RoomID"])).size;
+
+  const borrowLogs = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
+  const libraryUsageTotal = borrowLogs.length;
+
+  return { roomUsage, teacherMonthlyFrequency, learningResourceTotal, roomsWithRegistryCount, libraryUsageTotal };
 }

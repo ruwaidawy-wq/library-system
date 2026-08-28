@@ -270,6 +270,9 @@ export type LibraryStat = {
 export type PublicLibraryStats = {
   roomUsage: Record<string, number>;
   teacherMonthlyFrequency: { month: string; count: number }[];
+  learningResourceTotal: number;
+  roomsWithRegistryCount: number;
+  libraryUsageTotal: number;
 };
 
 export const statsApi = {

@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowLeft, BarChart3, Loader2, ShieldCheck } from "lucide-react";
 import { statsApi, PublicLibraryStats } from "@/lib/gas";
+import { ALL_ROOMS } from "@/lib/rooms";
+import CoverageDonut from "@/components/CoverageDonut";
 
 const THAI_MONTHS_SHORT = [
   "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
@@ -38,6 +40,12 @@ export default function LibraryStatsPublicPage() {
   const months = data?.teacherMonthlyFrequency || [];
   const maxMonthCount = Math.max(1, ...months.map((m) => m.count));
 
+  const totalRoomsCount = Object.keys(ALL_ROOMS).length;
+  const roomsWithRegistryCount = data?.roomsWithRegistryCount || 0;
+  const roomCoveragePercent = totalRoomsCount > 0
+    ? Math.round((roomsWithRegistryCount / totalRoomsCount) * 100)
+    : 0;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
@@ -65,6 +73,27 @@ export default function LibraryStatsPublicPage() {
         <div className="bg-red-50 border border-red-300 rounded-xl p-3 text-red-700 text-sm">{error}</div>
       ) : (
         <>
+          {/* ภาพรวม */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+            <div className="bg-white rounded-2xl shadow p-4 flex items-center gap-4">
+              <CoverageDonut percent={roomCoveragePercent} />
+              <div>
+                <p className="text-xs text-slate-500">ห้องที่มีแหล่งเรียนรู้แล้ว</p>
+                <p className="text-lg font-bold" style={{ color: "#1e3a5f" }}>
+                  {roomsWithRegistryCount} <span className="text-slate-400 font-normal text-sm">จาก {totalRoomsCount} ห้อง</span>
+                </p>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl shadow p-4 flex flex-col justify-center">
+              <p className="text-xs text-slate-500 mb-1">แหล่งเรียนรู้ทั้งหมด</p>
+              <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{data?.learningResourceTotal ?? 0}</p>
+            </div>
+            <div className="bg-white rounded-2xl shadow p-4 flex flex-col justify-center">
+              <p className="text-xs text-slate-500 mb-1">การเข้าใช้บริการห้องสมุด</p>
+              <p className="text-3xl font-bold" style={{ color: "#3b82f6" }}>{data?.libraryUsageTotal ?? 0}</p>
+            </div>
+          </div>
+
           {/* จำนวนครั้งที่เข้าใช้แต่ละห้องเรียน/แหล่งเรียนรู้ */}
           <div className="bg-white rounded-2xl shadow p-5 mb-6">
             <div className="flex items-center gap-2 mb-4">
