@@ -43,6 +43,22 @@ const ALL_ROOMS: Record<string, string> = {
   "room-24": "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)",
 };
 
+function CoverageDonut({ percent }: { percent: number }) {
+  const radius = 40;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference * (1 - percent / 100);
+  return (
+    <svg viewBox="0 0 100 100" className="w-24 h-24 shrink-0" role="img" aria-label={`${percent}%`}>
+      <circle cx="50" cy="50" r={radius} fill="none" stroke="#e2e8f0" strokeWidth="12" />
+      <circle cx="50" cy="50" r={radius} fill="none" stroke="#065f46" strokeWidth="12"
+        strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={offset}
+        transform="rotate(-90 50 50)" />
+      <text x="50" y="50" textAnchor="middle" dominantBaseline="central"
+        fontSize="22" fontWeight="700" fill="#1e3a5f">{percent}%</text>
+    </svg>
+  );
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
@@ -259,8 +275,9 @@ async function handleApprove(log: BorrowLog) {
       (a, b) => (byRoom.get(b)?.length || 0) - (byRoom.get(a)?.length || 0)
     );
 
-    const summaryRows = roomIds.map((roomId) => `
+    const summaryRows = roomIds.map((roomId, i) => `
       <tr>
+        <td style="text-align:center">${i + 1}</td>
         <td>${escapeHtml(ALL_ROOMS[roomId] || roomId)}</td>
         <td style="text-align:center">${byRoom.get(roomId)?.length || 0}</td>
       </tr>
@@ -325,6 +342,12 @@ async function handleApprove(log: BorrowLog) {
           .entry-imgs { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
           img.entry-img { width: 100px; height: 100px; object-fit: cover; border-radius: 6px; }
           .footer { text-align: center; font-size: 11px; color: #888; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+          .stat-row { display: flex; gap: 12px; margin: 16px 0; }
+          .stat-box { flex: 1; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; }
+          .stat-box .stat-label { font-size: 11.5px; color: #666; margin: 0 0 4px; }
+          .stat-box .stat-value { font-size: 20px; font-weight: 700; color: #1e3a5f; margin: 0; }
+          .stat-bar-track { background: #e2e8f0; border-radius: 999px; height: 10px; overflow: hidden; margin-top: 6px; }
+          .stat-bar-fill { background: #065f46; height: 100%; }
         </style>
       </head>
       <body>
@@ -335,14 +358,29 @@ async function handleApprove(log: BorrowLog) {
           <p>สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน กระทรวงศึกษาธิการ</p>
         </div>
         <div class="divider"></div>
+        <div class="stat-row">
+          <div class="stat-box">
+            <p class="stat-label">ห้องที่มีแหล่งเรียนรู้แล้ว</p>
+            <p class="stat-value">${roomsWithRegistryCount} จาก ${totalRoomsCount} ห้อง (${roomCoveragePercent}%)</p>
+            <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${roomCoveragePercent}%"></div></div>
+          </div>
+          <div class="stat-box">
+            <p class="stat-label">แหล่งเรียนรู้ทั้งหมด</p>
+            <p class="stat-value">${approvedRegistry.length}</p>
+          </div>
+          <div class="stat-box">
+            <p class="stat-label">การเข้าใช้บริการห้องสมุด</p>
+            <p class="stat-value">${logs.length}</p>
+          </div>
+        </div>
         <h2 class="section-title">สรุปจำนวนแหล่งเรียนรู้แต่ละห้องเรียน</h2>
         <table>
           <thead>
-            <tr><td>ห้องเรียน</td><td style="width:20%;text-align:center">จำนวน</td></tr>
+            <tr><td style="width:10%;text-align:center">ลำดับ</td><td>ห้องเรียน</td><td style="width:20%;text-align:center">จำนวน</td></tr>
           </thead>
           <tbody>
             ${summaryRows}
-            <tr><td style="font-weight:700">รวมทั้งหมด</td><td style="text-align:center;font-weight:700">${approvedRegistry.length}</td></tr>
+            <tr><td colspan="2" style="font-weight:700">รวมทั้งหมด</td><td style="text-align:center;font-weight:700">${approvedRegistry.length}</td></tr>
           </tbody>
         </table>
         <h2 class="section-title">รายละเอียดแหล่งเรียนรู้</h2>
@@ -495,6 +533,12 @@ async function handleApprove(log: BorrowLog) {
 
   const pendingRegistry = registryEntries.filter((e) => e.สถานะ !== "อนุมัติแล้ว");
   const approvedRegistry = registryEntries.filter((e) => e.สถานะ === "อนุมัติแล้ว");
+
+  const totalRoomsCount = Object.keys(ALL_ROOMS).length;
+  const roomsWithRegistryCount = new Set(approvedRegistry.map((e) => e.RoomID)).size;
+  const roomCoveragePercent = totalRoomsCount > 0
+    ? Math.round((roomsWithRegistryCount / totalRoomsCount) * 100)
+    : 0;
 
   const statusColor = (status: string) => {
     if (status === "ยืมอยู่") return { bg: "#dbeafe", text: "#1d4ed8" };
@@ -1080,6 +1124,27 @@ async function handleApprove(log: BorrowLog) {
             </div>
           ) : (
             <>
+              {/* สถิติภาพรวม */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="bg-white rounded-2xl shadow p-4 flex items-center gap-4">
+                  <CoverageDonut percent={roomCoveragePercent} />
+                  <div>
+                    <p className="text-xs text-slate-500">ห้องที่มีแหล่งเรียนรู้แล้ว</p>
+                    <p className="text-lg font-bold" style={{ color: "#1e3a5f" }}>
+                      {roomsWithRegistryCount} <span className="text-slate-400 font-normal text-sm">จาก {totalRoomsCount} ห้อง</span>
+                    </p>
+                  </div>
+                </div>
+                <div className="bg-white rounded-2xl shadow p-4 flex flex-col justify-center">
+                  <p className="text-xs text-slate-500 mb-1">แหล่งเรียนรู้ทั้งหมด</p>
+                  <p className="text-3xl font-bold" style={{ color: "#065f46" }}>{approvedRegistry.length}</p>
+                </div>
+                <div className="bg-white rounded-2xl shadow p-4 flex flex-col justify-center">
+                  <p className="text-xs text-slate-500 mb-1">การเข้าใช้บริการห้องสมุด</p>
+                  <p className="text-3xl font-bold" style={{ color: "#3b82f6" }}>{logs.length}</p>
+                </div>
+              </div>
+
               {/* รออนุมัติ */}
               {pendingRegistry.length > 0 && (
                 <div>
