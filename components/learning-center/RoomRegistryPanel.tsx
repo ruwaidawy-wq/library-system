@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Save, X, Camera, Loader2, CheckCircle } from "luci
 import { roomApi, RoomRegistryEntry, Teacher } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import NameTagPicker from "@/components/NameTagPicker";
+import { compressImage } from "@/lib/imageUtils";
 
 const ROOM_TYPES = [
   "ห้องเรียน", "ห้องบำบัด", "ห้องกิจกรรม", "ห้องดนตรี",
@@ -67,13 +68,12 @@ export default function RoomRegistryPanel({ roomId, isAdminMode, entries, loadin
     setShowForm(true);
   }
 
-  function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = () => setFormPhotos(prev => [...prev, reader.result as string]);
-      reader.readAsDataURL(file);
-    });
+    for (const file of files) {
+      const compressed = await compressImage(file);
+      setFormPhotos(prev => [...prev, compressed]);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {

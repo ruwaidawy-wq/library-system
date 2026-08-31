@@ -11,7 +11,18 @@ async function gasRequest<T>(params: Record<string, unknown>): Promise<ApiRespon
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
-    const json = await res.json();
+    // ถ้าไฟล์แนบ (รูปภาพ) รวมกันใหญ่เกินขีดจำกัดของ request บนโฮสติ้ง เซิร์ฟเวอร์จะตอบกลับ
+    // เป็นข้อความธรรมดา (ไม่ใช่ JSON) ก่อนถึงโค้ดของเราเสียอีก res.json() จะ throw
+    // SyntaxError ที่อ่านไม่รู้เรื่อง ดักไว้ตรงนี้ให้ขึ้นข้อความที่แก้ปัญหาได้จริงแทน
+    if (res.status === 413) {
+      return { success: false, error: "ไฟล์ที่แนบมีขนาดใหญ่เกินไป กรุณาแนบรูปภาพให้น้อยลงหรือเลือกรูปที่มีขนาดเล็กลง" };
+    }
+    let json: unknown;
+    try {
+      json = await res.json();
+    } catch {
+      return { success: false, error: "เชื่อมต่อระบบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" };
+    }
     return json as ApiResponse<T>;
   } catch (err) {
     return { success: false, error: String(err) };
