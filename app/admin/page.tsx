@@ -256,9 +256,16 @@ async function handleApprove(log: BorrowLog) {
       list.push(entry);
       byRoom.set(entry.RoomID, list);
     });
-    const roomIds = Array.from(byRoom.keys()).sort(
-      (a, b) => (byRoom.get(b)?.length || 0) - (byRoom.get(a)?.length || 0)
-    );
+    // เรียงห้องเรียน ๑-๒๔ ตามลำดับเลขก่อน แล้วตามด้วยห้อง/แหล่งเรียนรู้อื่นๆ ตามลำดับที่กำหนดไว้ใน ALL_ROOMS
+    const allRoomIdsOrder = Object.keys(ALL_ROOMS);
+    const roomIds = Array.from(byRoom.keys()).sort((a, b) => {
+      const numA = /^room-(\d+)$/.exec(a);
+      const numB = /^room-(\d+)$/.exec(b);
+      if (numA && numB) return parseInt(numA[1], 10) - parseInt(numB[1], 10);
+      if (numA && !numB) return -1;
+      if (!numA && numB) return 1;
+      return allRoomIdsOrder.indexOf(a) - allRoomIdsOrder.indexOf(b);
+    });
 
     const summaryRows = roomIds.map((roomId, i) => `
       <tr>
@@ -333,14 +340,16 @@ async function handleApprove(log: BorrowLog) {
           .stat-box .stat-value { font-size: 20px; font-weight: 700; color: #1e3a5f; margin: 0; }
           .stat-bar-track { background: #e2e8f0; border-radius: 999px; height: 10px; overflow: hidden; margin-top: 6px; }
           .stat-bar-fill { background: #065f46; height: 100%; }
+          .as-of-date { text-align: center; font-size: 11.5px; color: #888; margin: 4px 0 0; }
         </style>
       </head>
       <body>
         <div class="header">
           <img src="${LOGO_URL}" alt="logo" />
-          <h1>ทะเบียนแหล่งเรียนรู้ทั้งหมด</h1>
+          <h1>ทะเบียนแหล่งเรียนรู้</h1>
           <h2>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</h2>
           <p>สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน กระทรวงศึกษาธิการ</p>
+          <p class="as-of-date">ข้อมูล ณ วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</p>
         </div>
         <div class="divider"></div>
         <div class="stat-row">
