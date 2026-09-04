@@ -49,6 +49,41 @@ function toThaiDigits(value: string | number) {
   return String(value).replace(/[0-9]/g, (d) => THAI_DIGITS[Number(d)]);
 }
 
+async function fetchAsDataUrl(url: string): Promise<string | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
+// โหลดรูปทั้งหมดล่วงหน้าเป็น data URL ก่อนส่งให้ html2canvas เพราะถ้าปล่อยให้ html2canvas
+// โหลดรูปจาก Google Drive สดๆ (มักมีหลายสิบรูปพร้อมกันสำหรับรายงานที่มีหลายห้อง) Google Drive
+// จะปฏิเสธ/ตัดการเชื่อมต่อคำขอที่ยิงพร้อมกันจำนวนมาก ทำให้ภาพทั้งหมดหายไปและ canvas ที่ได้ว่างเปล่า
+// ทยอยโหลดทีละไม่กี่รูปแทนการยิงพร้อมกันทั้งหมด เพื่อไม่ให้โดนจำกัดจำนวนคำขอ
+async function preloadImagesAsDataUrls(urls: string[], concurrency = 4): Promise<Map<string, string>> {
+  const uniqueUrls = Array.from(new Set(urls));
+  const result = new Map<string, string>();
+  let index = 0;
+  async function worker() {
+    while (index < uniqueUrls.length) {
+      const url = uniqueUrls[index++];
+      const dataUrl = await fetchAsDataUrl(url);
+      if (dataUrl) result.set(url, dataUrl);
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(concurrency, uniqueUrls.length) }, worker));
+  return result;
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
@@ -76,6 +111,7 @@ export default function AdminPage() {
   const [pendingDeletions, setPendingDeletions] = useState<CheckIn[]>([]);
   const [loadingDeletions, setLoadingDeletions] = useState(false);
   const [deletionSuccess, setDeletionSuccess] = useState("");
+  const [generatingRegistryPdf, setGeneratingRegistryPdf] = useState(false);
 
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -254,7 +290,7 @@ async function handleApprove(log: BorrowLog) {
     }
   }
 
-  function handlePrintRegistry() {
+  async function handlePrintRegistry() {
     const byRoom = new Map<string, RoomRegistryEntry[]>();
     approvedRegistry.forEach((entry) => {
       const list = byRoom.get(entry.RoomID) || [];
@@ -280,10 +316,15 @@ async function handleApprove(log: BorrowLog) {
       </tr>
     `).join("");
 
+    const allPhotoUrls = approvedRegistry.flatMap((e) => e.รูปภาพURL ? e.รูปภาพURL.split(",").filter(Boolean) : []);
+    const imageDataUrls = await preloadImagesAsDataUrls([...allPhotoUrls, LOGO_URL]);
+
     const detailSections = roomIds.map((roomId) => {
       const entries = byRoom.get(roomId) || [];
       const cards = entries.map((entry) => {
-        const photos = entry.รูปภาพURL ? entry.รูปภาพURL.split(",").filter(Boolean) : [];
+        const photos = (entry.รูปภาพURL ? entry.รูปภาพURL.split(",").filter(Boolean) : [])
+          .map((url) => imageDataUrls.get(url))
+          .filter((dataUrl): dataUrl is string => Boolean(dataUrl));
         const responsible = entry.ผู้รับผิดชอบ
           ? entry.ผู้รับผิดชอบ.split("\n").filter(Boolean).map(escapeHtml).join(", ")
           : "-";
@@ -298,7 +339,7 @@ async function handleApprove(log: BorrowLog) {
             ${entry.วันที่จัดตั้ง ? `<p class="entry-line"><b>จัดตั้ง:</b> ${toThaiDigits(new Date(entry.วันที่จัดตั้ง).toLocaleDateString("th-TH"))}</p>` : ""}
             ${photos.length > 0 ? `
               <div class="entry-imgs">
-                ${photos.map((url) => `<img class="entry-img" src="${escapeHtml(url)}" alt="" />`).join("")}
+                ${photos.map((dataUrl) => `<img class="entry-img" src="${dataUrl}" alt="" />`).join("")}
               </div>
             ` : ""}
           </div>
@@ -313,12 +354,8 @@ async function handleApprove(log: BorrowLog) {
     }).join("");
 
     const content = `
-      <html>
-      <head>
-        <meta charset="utf-8">
+      <div style="font-family: 'Sarabun', sans-serif; padding: 30px; color: #1a202c; background: #fff; width: 800px;">
         <style>
-          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
-          body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #1a202c; }
           .header { text-align: center; margin-bottom: 20px; }
           .header img { width: 80px; height: 80px; object-fit: contain; }
           .header h1 { font-size: 16px; font-weight: 700; margin: 6px 0 2px; }
@@ -347,10 +384,8 @@ async function handleApprove(log: BorrowLog) {
           .stat-bar-fill { background: #065f46; height: 100%; }
           .as-of-date { text-align: center; font-size: 11.5px; color: #888; margin: 4px 0 0; }
         </style>
-      </head>
-      <body>
         <div class="header">
-          <img src="${LOGO_URL}" alt="logo" />
+          ${imageDataUrls.get(LOGO_URL) ? `<img src="${imageDataUrls.get(LOGO_URL)}" alt="logo" />` : ""}
           <h1>ทะเบียนแหล่งเรียนรู้</h1>
           <h2>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</h2>
           <p>สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน กระทรวงศึกษาธิการ</p>
@@ -367,10 +402,6 @@ async function handleApprove(log: BorrowLog) {
             <p class="stat-label">แหล่งเรียนรู้ทั้งหมด</p>
             <p class="stat-value">${toThaiDigits(approvedRegistry.length)}</p>
           </div>
-          <div class="stat-box">
-            <p class="stat-label">การเข้าใช้บริการห้องสมุด</p>
-            <p class="stat-value">${toThaiDigits(logs.length)}</p>
-          </div>
         </div>
         <h2 class="section-title">สรุปจำนวนแหล่งเรียนรู้แต่ละห้องเรียน</h2>
         <table>
@@ -385,13 +416,55 @@ async function handleApprove(log: BorrowLog) {
         <h2 class="section-title">รายละเอียดแหล่งเรียนรู้</h2>
         ${detailSections}
         <div class="footer">พิมพ์วันที่ ${toThaiDigits(new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }))}</div>
-      </body>
-      </html>
+      </div>
     `;
-    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) { setTimeout(() => { w.print(); }, 800); }
+
+    setGeneratingRegistryPdf(true);
+    // ซ่อนด้วยตำแหน่งนอกจอ/z-index ติดลบไม่ได้ผล — เบราว์เซอร์บางตัวไม่ paint element ที่มี
+    // z-index ติดลบ ทำให้ html2canvas จับภาพได้เป็นหน้าว่างเปล่า จึงวางไว้บนสุดของหน้าจอตามปกติแทน
+    const container = document.createElement("div");
+    container.style.position = "fixed";
+    container.style.top = "0";
+    container.style.left = "0";
+    container.style.zIndex = "999998";
+    container.style.background = "#fff";
+    container.innerHTML = content;
+    document.body.appendChild(container);
+
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const { jsPDF } = await import("jspdf");
+
+      const canvas = await html2canvas(container, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+      const imgData = canvas.toDataURL("image/jpeg", 0.95);
+
+      const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+      const margin = 10;
+      const pageWidth = pdf.internal.pageSize.getWidth() - margin * 2;
+      const pageHeight = pdf.internal.pageSize.getHeight() - margin * 2;
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      // ตัดภาพยาวๆ ทั้งใบเป็นหลายหน้า A4 โดยเลื่อนตำแหน่งภาพขึ้นทีละหน้า
+      // (ค่า position ติดลบ = เลื่อนภาพขึ้นให้ส่วนที่ยังไม่แสดงเลื่อนเข้ามาในกรอบหน้ากระดาษ)
+      let heightLeft = imgHeight;
+      let position = 0;
+      pdf.addImage(imgData, "JPEG", margin, margin + position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+      while (heightLeft > 0) {
+        position -= pageHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "JPEG", margin, margin + position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`ทะเบียนแหล่งเรียนรู้-${new Date().toISOString().slice(0, 10)}.pdf`);
+    } catch (err) {
+      alert(`สร้าง PDF ไม่สำเร็จ: ${String(err)}`);
+    } finally {
+      document.body.removeChild(container);
+      setGeneratingRegistryPdf(false);
+    }
   }
 
   function handleDownloadPDF(act: Activity) {
@@ -1206,9 +1279,10 @@ async function handleApprove(log: BorrowLog) {
                     ทะเบียนแหล่งเรียนรู้ทั้งหมด ({approvedRegistry.length})
                   </h2>
                   {approvedRegistry.length > 0 && (
-                    <button onClick={handlePrintRegistry}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs">
-                      <Printer size={14} /> พิมพ์สรุป
+                    <button onClick={handlePrintRegistry} disabled={generatingRegistryPdf}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs disabled:opacity-50">
+                      {generatingRegistryPdf ? <Loader2 size={14} className="animate-spin" /> : <Printer size={14} />}
+                      {generatingRegistryPdf ? "กำลังสร้าง PDF..." : "ดาวน์โหลด PDF"}
                     </button>
                   )}
                 </div>
