@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap, BarChart3, Printer } from "lucide-react";
-import { libraryApi, activityApi, roomApi, learningApi, BorrowLog, Activity, RoomRegistryEntry, CheckIn } from "@/lib/gas";
+import { libraryApi, activityApi, roomApi, learningApi, ApiResponse, BorrowLog, Activity, RoomRegistryEntry, CheckIn } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
 import LibraryStatsForm from "@/components/library/LibraryStatsForm";
 import CoverageDonut from "@/components/CoverageDonut";
@@ -49,6 +49,18 @@ function toThaiDigits(value: string | number) {
   return String(value).replace(/[0-9]/g, (d) => THAI_DIGITS[Number(d)]);
 }
 
+// หน้า Admin ยิงคำขอโหลดข้อมูลหลายก้อน (borrow log, activities, registry, pending deletions)
+// พร้อมกันตอนล็อกอิน ทำให้ Apps Script บางครั้งตอบช้าจนคำขอใดคำขอหนึ่งหลุด/timeout แบบสุ่ม
+// ลองซ้ำอัตโนมัติอีกครั้งก่อนค่อยถือว่าล้มเหลวจริง
+async function withRetry<T>(fn: () => Promise<ApiResponse<T>>, retries = 1, delayMs = 1500): Promise<ApiResponse<T>> {
+  let res = await fn();
+  for (let i = 0; i < retries && !res.success; i++) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    res = await fn();
+  }
+  return res;
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
@@ -89,33 +101,33 @@ export default function AdminPage() {
 
   async function loadLogs() {
     setLoadingLogs(true);
-    const res = await libraryApi.getBorrowLog();
+    const res = await withRetry(() => libraryApi.getBorrowLog());
     if (res.success && res.data) setLogs(res.data.reverse());
     setLoadingLogs(false);
   }
 
   async function loadActivities() {
     setLoadingAct(true);
-    const res = await activityApi.getActivities();
+    const res = await withRetry(() => activityApi.getActivities());
     if (res.success && res.data) setActivities(res.data.reverse());
     setLoadingAct(false);
   }
 
   async function loadRegistry() {
     setLoadingRegistry(true);
-    const res = await roomApi.getRoomRegistry();
+    const res = await withRetry(() => roomApi.getRoomRegistry());
     if (res.success && res.data) {
       setRegistryEntries(res.data.reverse());
       setRegistryError("");
     } else {
-      setRegistryError(res.error || "โหลดข้อมูลทะเบียนแหล่งเรียนรู้ไม่สำเร็จ");
+      setRegistryError(res.error || "โหลดข้อมูลทะเบียนแหล่งเรียนรู้ไม่สำเร็จ (ลองใหม่อัตโนมัติแล้วแต่ยังไม่สำเร็จ)");
     }
     setLoadingRegistry(false);
   }
 
   async function loadPendingDeletions() {
     setLoadingDeletions(true);
-    const res = await learningApi.getPendingCheckInDeletions();
+    const res = await withRetry(() => learningApi.getPendingCheckInDeletions());
     if (res.success && res.data) setPendingDeletions(res.data);
     setLoadingDeletions(false);
   }
@@ -1104,12 +1116,17 @@ async function handleApprove(log: BorrowLog) {
           {registryError && (
             <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4 flex items-start gap-3">
               <AlertCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
-              <div>
+              <div className="flex-1">
                 <span className="text-red-800 font-medium block">{registryError}</span>
                 <span className="text-red-600 text-xs">
-                  ถ้าเพิ่งเพิ่มฟีเจอร์นี้ ให้ตรวจสอบว่า deploy โค้ด Apps Script (gas/code.gs) เวอร์ชันล่าสุดแล้ว และมีชีตชื่อ &quot;Room_Registry&quot; พร้อมหัวตาราง ID, RoomID, ประเภท, รายละเอียด, อุปกรณ์/สื่อ, ผู้รับผิดชอบ, วันที่จัดตั้ง, รูปภาพURL, สถานะ
+                  ส่วนใหญ่เกิดจากการเชื่อมต่อช้าชั่วคราว กด &quot;ลองโหลดใหม่&quot; ได้เลย
+                  ถ้ายังไม่หายและเพิ่งเพิ่มฟีเจอร์นี้ ให้ตรวจสอบว่า deploy โค้ด Apps Script (gas/code.gs) เวอร์ชันล่าสุดแล้ว และมีชีตชื่อ &quot;Room_Registry&quot; พร้อมหัวตาราง ID, RoomID, ประเภท, รายละเอียด, อุปกรณ์/สื่อ, ผู้รับผิดชอบ, วันที่จัดตั้ง, รูปภาพURL, สถานะ
                 </span>
               </div>
+              <button onClick={loadRegistry}
+                className="shrink-0 px-3 py-1.5 rounded-lg border-2 border-red-300 text-red-700 hover:bg-red-100 text-xs font-medium">
+                ลองโหลดใหม่
+              </button>
             </div>
           )}
 
