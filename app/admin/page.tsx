@@ -44,6 +44,11 @@ const ALL_ROOMS: Record<string, string> = {
   "room-24": "ห้องเรียน ๒๔ (หน่วยบริการกระแสสินธุ์)",
 };
 
+const THAI_DIGITS = ["๐", "๑", "๒", "๓", "๔", "๕", "๖", "๗", "๘", "๙"];
+function toThaiDigits(value: string | number) {
+  return String(value).replace(/[0-9]/g, (d) => THAI_DIGITS[Number(d)]);
+}
+
 export default function AdminPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [password, setPassword] = useState("");
@@ -269,9 +274,9 @@ async function handleApprove(log: BorrowLog) {
 
     const summaryRows = roomIds.map((roomId, i) => `
       <tr>
-        <td style="text-align:center">${i + 1}</td>
+        <td style="text-align:center">${toThaiDigits(i + 1)}</td>
         <td>${escapeHtml(ALL_ROOMS[roomId] || roomId)}</td>
-        <td style="text-align:center">${byRoom.get(roomId)?.length || 0}</td>
+        <td style="text-align:center">${toThaiDigits(byRoom.get(roomId)?.length || 0)}</td>
       </tr>
     `).join("");
 
@@ -290,7 +295,7 @@ async function handleApprove(log: BorrowLog) {
             ${entry.รายละเอียด ? `<p class="entry-line">${escapeHtml(entry.รายละเอียด)}</p>` : ""}
             ${entry["อุปกรณ์/สื่อ"] ? `<p class="entry-line"><b>อุปกรณ์/สื่อ:</b> ${escapeHtml(entry["อุปกรณ์/สื่อ"])}</p>` : ""}
             <p class="entry-line"><b>ผู้รับผิดชอบ:</b> ${responsible}</p>
-            ${entry.วันที่จัดตั้ง ? `<p class="entry-line"><b>จัดตั้ง:</b> ${new Date(entry.วันที่จัดตั้ง).toLocaleDateString("th-TH")}</p>` : ""}
+            ${entry.วันที่จัดตั้ง ? `<p class="entry-line"><b>จัดตั้ง:</b> ${toThaiDigits(new Date(entry.วันที่จัดตั้ง).toLocaleDateString("th-TH"))}</p>` : ""}
             ${photos.length > 0 ? `
               <div class="entry-imgs">
                 ${photos.map((url) => `<img class="entry-img" src="${escapeHtml(url)}" alt="" />`).join("")}
@@ -301,7 +306,7 @@ async function handleApprove(log: BorrowLog) {
       }).join("");
       return `
         <div class="room-section">
-          <h3>${escapeHtml(ALL_ROOMS[roomId] || roomId)} <span class="room-count">(${entries.length} รายการ)</span></h3>
+          <h3>${escapeHtml(ALL_ROOMS[roomId] || roomId)} <span class="room-count">(${toThaiDigits(entries.length)} รายการ)</span></h3>
           ${cards}
         </div>
       `;
@@ -349,22 +354,22 @@ async function handleApprove(log: BorrowLog) {
           <h1>ทะเบียนแหล่งเรียนรู้</h1>
           <h2>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</h2>
           <p>สำนักบริหารงานการศึกษาพิเศษ สำนักงานคณะกรรมการการศึกษาขั้นพื้นฐาน กระทรวงศึกษาธิการ</p>
-          <p class="as-of-date">ข้อมูล ณ วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</p>
+          <p class="as-of-date">ข้อมูล ณ วันที่ ${toThaiDigits(new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }))}</p>
         </div>
         <div class="divider"></div>
         <div class="stat-row">
           <div class="stat-box">
             <p class="stat-label">ห้องที่มีแหล่งเรียนรู้แล้ว</p>
-            <p class="stat-value">${roomsWithRegistryCount} จาก ${totalRoomsCount} ห้อง (${roomCoveragePercent}%)</p>
+            <p class="stat-value">${toThaiDigits(`${roomsWithRegistryCount} จาก ${totalRoomsCount} ห้อง (${roomCoveragePercent}%)`)}</p>
             <div class="stat-bar-track"><div class="stat-bar-fill" style="width:${roomCoveragePercent}%"></div></div>
           </div>
           <div class="stat-box">
             <p class="stat-label">แหล่งเรียนรู้ทั้งหมด</p>
-            <p class="stat-value">${approvedRegistry.length}</p>
+            <p class="stat-value">${toThaiDigits(approvedRegistry.length)}</p>
           </div>
           <div class="stat-box">
             <p class="stat-label">การเข้าใช้บริการห้องสมุด</p>
-            <p class="stat-value">${logs.length}</p>
+            <p class="stat-value">${toThaiDigits(logs.length)}</p>
           </div>
         </div>
         <h2 class="section-title">สรุปจำนวนแหล่งเรียนรู้แต่ละห้องเรียน</h2>
@@ -374,12 +379,12 @@ async function handleApprove(log: BorrowLog) {
           </thead>
           <tbody>
             ${summaryRows}
-            <tr><td colspan="2" style="font-weight:700">รวมทั้งหมด</td><td style="text-align:center;font-weight:700">${approvedRegistry.length}</td></tr>
+            <tr><td colspan="2" style="font-weight:700">รวมทั้งหมด</td><td style="text-align:center;font-weight:700">${toThaiDigits(approvedRegistry.length)}</td></tr>
           </tbody>
         </table>
         <h2 class="section-title">รายละเอียดแหล่งเรียนรู้</h2>
         ${detailSections}
-        <div class="footer">พิมพ์วันที่ ${new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}</div>
+        <div class="footer">พิมพ์วันที่ ${toThaiDigits(new Date().toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }))}</div>
       </body>
       </html>
     `;
