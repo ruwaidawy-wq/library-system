@@ -375,7 +375,7 @@ async function handleApprove(log: BorrowLog) {
         <h2 class="section-title">สรุปจำนวนแหล่งเรียนรู้แต่ละห้องเรียน</h2>
         <table>
           <thead>
-            <tr><td style="width:10%;text-align:center">ลำดับ</td><td>ห้องเรียน</td><td style="width:20%;text-align:center">จำนวน</td></tr>
+            <tr><td style="width:10%;text-align:center">ลำดับ</td><td style="text-align:center">ห้องเรียน</td><td style="width:20%;text-align:center">จำนวน</td></tr>
           </thead>
           <tbody>
             ${summaryRows}
