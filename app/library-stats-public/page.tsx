@@ -138,7 +138,7 @@ export default function LibraryStatsPublicPage() {
                 ความถี่การเข้าใช้ของครู รายเดือน
               </h2>
             </div>
-            <p className="text-xs text-slate-400 mb-4">นับเฉพาะจำนวนครั้ง ไม่ระบุชื่อครู • ย้อนหลัง 12 เดือน</p>
+            <p className="text-xs text-slate-400 mb-4">นับจากการเช็คอินเข้าห้องเรียน/แหล่งเรียนรู้และการบันทึกกิจกรรม ไม่รวมการยืม-คืนหนังสือ ไม่ระบุชื่อครู • ย้อนหลัง 12 เดือน</p>
             {months.every((m) => m.count === 0) ? (
               <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีข้อมูลการเข้าใช้</p>
             ) : (
