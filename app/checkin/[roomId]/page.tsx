@@ -7,7 +7,7 @@ import RoomRegistryPanel from "@/components/learning-center/RoomRegistryPanel";
 import { compressImage } from "@/lib/imageUtils";
 import NameTagPicker from "@/components/NameTagPicker";
 import ZoomableImage from "@/components/ZoomableImage";
-import { escapeHtml } from "@/lib/htmlUtils";
+import { escapeHtml, openPrintWindow } from "@/lib/htmlUtils";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 
@@ -261,10 +261,7 @@ export default function RoomPage({ params }: { params: { roomId: string } }) {
       </body>
       </html>
     `;
-    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) { setTimeout(() => { w.print(); }, 800); }
+    openPrintWindow(content);
   }
 
   const todayCheckins = checkins.filter(c => {

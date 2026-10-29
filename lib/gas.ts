@@ -96,6 +96,9 @@ export type Activity = {
   การประเมิน?: string;
   ประเภทการเข้าใช้?: string;
   เวลา?: string;
+  คำขอลบ?: string;
+  ผู้ขอลบ?: string;
+  เหตุผลการลบ?: string;
 };
 
 export type LeaderboardEntry = {
@@ -206,6 +209,12 @@ export const activityApi = {
 
   deleteActivity: (id: string) =>
     gasRequest({ action: "deleteActivity", id }),
+
+  requestDeleteActivity: (id: string, requestedBy: string, reason: string) =>
+    gasRequest({ action: "requestDeleteActivity", id, requestedBy, reason }),
+
+  cancelDeleteActivity: (id: string) =>
+    gasRequest({ action: "cancelDeleteActivity", id }),
 };
 
 // ============================================================

@@ -6,7 +6,7 @@ import { compressImage } from "@/lib/imageUtils";
 import SignaturePad from "@/components/SignaturePad";
 import NameSearchSelect from "@/components/NameSearchSelect";
 import NameTagPicker from "@/components/NameTagPicker";
-import { escapeHtml } from "@/lib/htmlUtils";
+import { escapeHtml, openPrintWindow } from "@/lib/htmlUtils";
 
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
 const LIBRARY_ROOM_KEY = "งานห้องสมุด";
@@ -83,7 +83,16 @@ export default function LibraryActivityForm() {
   const [students, setStudents] = useState<StudentAssessment[]>([blankStudent()]);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [savedRecord, setSavedRecord] = useState<Activity | null>(null);
   const [error, setError] = useState("");
+  // เปลี่ยนค่านี้เพื่อ remount ฟอร์มทั้งก้อนหลังบันทึก ล้าง state ภายในของช่องค้นหาชื่อ
+  // แผ่นลายเซ็น และ input ไฟล์รูปไปด้วย ไม่ใช่แค่ state ของคอมโพเนนต์นี้
+  const [formKey, setFormKey] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<Activity | null>(null);
+  const [deleteBy, setDeleteBy] = useState("");
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteSubmitting, setDeleteSubmitting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [history, setHistory] = useState<Activity[]>([]);
   const [historyError, setHistoryError] = useState("");
   const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
@@ -103,9 +112,10 @@ export default function LibraryActivityForm() {
     if (res.success && res.data) {
       setHistory(res.data);
       setHistoryError("");
-    } else {
-      setHistoryError(res.error || "โหลดประวัติไม่สำเร็จ");
+      return res.data;
     }
+    setHistoryError(res.error || "โหลดประวัติไม่สำเร็จ");
+    return [];
   };
 
   useEffect(() => {
@@ -172,7 +182,6 @@ export default function LibraryActivityForm() {
   }
 
   function resetForm() {
-    setVisitType("group");
     setTime("");
     setTeacherList([]);
     setActivityDetail("");
@@ -183,6 +192,9 @@ export default function LibraryActivityForm() {
     setSignature(null);
     setStudents([blankStudent()]);
     setDate(todayStr());
+    setShowSignPad(false);
+    setError("");
+    setFormKey((k) => k + 1);
   }
 
   // สร้าง PDF ของรายการที่บันทึกแล้วในหน้าต่างแยก (อ่านอย่างเดียว) ไม่โหลดข้อมูลกลับเข้าฟอร์ม
@@ -286,10 +298,7 @@ export default function LibraryActivityForm() {
       </body>
       </html>
     `;
-    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) { setTimeout(() => { w.print(); }, 800); }
+    openPrintWindow(content);
   }
 
   function handlePrintSelfTable() {
@@ -345,10 +354,7 @@ export default function LibraryActivityForm() {
       </body>
       </html>
     `;
-    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) { setTimeout(() => { w.print(); }, 800); }
+    openPrintWindow(content);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -375,17 +381,47 @@ export default function LibraryActivityForm() {
       visitType: visitType === "self" ? "บันทึกการเข้าใช้ของครู" : "บันทึกการเข้าใช้ของนักเรียน",
       time: visitType === "self" ? time : "",
     });
-    setSubmitting(false);
     if (res.success) {
-      setSuccess(true);
-      await loadHistory();
-      setTimeout(() => setSuccess(false), 4000);
-      if (visitType === "group") {
-        window.print();
-      }
+      // ล้างฟอร์มทันทีหลังบันทึกสำเร็จ รายการที่บันทึกแล้วแก้ไขไม่ได้ ถ้าต้องการ PDF
+      // ให้กดจากแถบแจ้งผลหรือจากประวัติ (ไม่สั่ง window.print() ของฟอร์มตรงนี้แล้ว เพราะบนมือถือ
+      // print() ไม่รอ ฟอร์มจะถูกล้างก่อนพิมพ์เสร็จ)
       resetForm();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      const latest = await loadHistory();
+      setSubmitting(false);
+      // GAS ส่ง id กลับมาที่ระดับบนสุดของ response ({ success, id }) ไม่ได้อยู่ใน data
+      const savedId = (res as { id?: string }).id;
+      setSavedRecord(visitType === "group" ? latest.find((a) => a.ID === savedId) || null : null);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 15000);
     } else {
+      setSubmitting(false);
       setError(res.error || "บันทึกกิจกรรมไม่สำเร็จ");
+    }
+  }
+
+  function openDeleteRequest(act: Activity) {
+    setDeleteTarget(act);
+    setDeleteBy("");
+    setDeleteReason("");
+    setDeleteError("");
+  }
+
+  async function submitDeleteRequest() {
+    if (!deleteTarget) return;
+    if (!deleteBy.trim() || !deleteReason.trim()) {
+      setDeleteError("กรุณาระบุชื่อผู้แจ้งลบและเหตุผลการลบ");
+      return;
+    }
+    setDeleteSubmitting(true);
+    setDeleteError("");
+    const res = await activityApi.requestDeleteActivity(deleteTarget.ID, deleteBy.trim(), deleteReason.trim());
+    setDeleteSubmitting(false);
+    if (res.success) {
+      setDeleteTarget(null);
+      await loadHistory();
+    } else {
+      setDeleteError(res.error || "แจ้งลบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
     }
   }
 
@@ -418,8 +454,14 @@ export default function LibraryActivityForm() {
 
       {success && (
         <div className="no-print bg-green-50 border border-green-300 rounded-xl p-3 mb-4 flex items-center gap-2">
-          <CheckCircle size={16} className="text-green-600" />
-          <span className="text-green-700 text-sm">บันทึกกิจกรรมห้องสมุดมีชีวิตเรียบร้อยแล้ว!</span>
+          <CheckCircle size={16} className="text-green-600 shrink-0" />
+          <span className="text-green-700 text-sm flex-1">บันทึกกิจกรรมห้องสมุดมีชีวิตเรียบร้อยแล้ว!</span>
+          {savedRecord && (
+            <button type="button" onClick={() => handleDownloadRecordPDF(savedRecord)}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-green-300 text-green-700 hover:bg-green-100 text-xs">
+              <FileDown size={14} /> PDF
+            </button>
+          )}
         </div>
       )}
 
@@ -440,7 +482,7 @@ export default function LibraryActivityForm() {
       </div>
       <div className="border-t-4 border-b-2 mb-4" style={{ borderColor: "#1e3a5f" }} />
 
-      <form onSubmit={handleSubmit}>
+      <form key={formKey} onSubmit={handleSubmit}>
         <table className="w-full border-collapse text-sm mb-4" style={{ border: "1px solid #000" }}>
           <tbody>
             <tr>
@@ -688,24 +730,80 @@ export default function LibraryActivityForm() {
           <p className="text-slate-400 text-sm text-center py-6">ยังไม่มีประวัติการบันทึกกิจกรรม</p>
         ) : (
           <div className="space-y-2">
-            {[...groupHistory].reverse().map((a) => (
-              <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
-                  <p className="text-xs text-slate-400">
-                    {formatThaiDate(a.วันที่)}
-                    {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
-                  </p>
+            {[...groupHistory].reverse().map((a) => {
+              const pendingDelete = a.คำขอลบ === "รอลบ";
+              return (
+                <div key={a.ID} className="flex items-center justify-between gap-3 border border-slate-100 rounded-xl p-3"
+                  style={pendingDelete ? { background: "#fef2f2", borderColor: "#fecaca" } : undefined}>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
+                    <p className="text-xs text-slate-400">
+                      {formatThaiDate(a.วันที่)}
+                      {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
+                    </p>
+                    {pendingDelete && (
+                      <p className="text-xs text-red-600 mt-1">
+                        แจ้งลบแล้ว รอผู้ดูแลยืนยัน • โดย {a.ผู้ขอลบ || "-"} • เหตุผล: {a.เหตุผลการลบ || "-"}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <button type="button" onClick={() => handleDownloadRecordPDF(a)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs">
+                      <FileDown size={14} /> PDF
+                    </button>
+                    {!pendingDelete && (
+                      <button type="button" onClick={() => openDeleteRequest(a)}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-red-200 text-red-500 hover:bg-red-50 text-xs">
+                        <Trash2 size={14} /> แจ้งลบ
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <button type="button" onClick={() => handleDownloadRecordPDF(a)}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs">
-                  <FileDown size={14} /> PDF
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+      )}
+
+      {deleteTarget && (
+        <div className="no-print fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+          onClick={() => !deleteSubmitting && setDeleteTarget(null)}>
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-lg mb-1" style={{ color: "#b91c1c" }}>แจ้งลบบันทึกกิจกรรม</h3>
+            <p className="text-xs text-slate-500 mb-4">
+              {formatThaiDate(deleteTarget.วันที่)} • {deleteTarget.ลักษณะกิจกรรม || "-"}
+              <br />บันทึกที่บันทึกแล้วแก้ไขไม่ได้ คำขอนี้จะส่งให้ผู้ดูแลระบบยืนยันการลบ หากข้อมูลผิดให้บันทึกรายการใหม่
+            </p>
+            <label className="block text-sm font-medium text-slate-600 mb-1">
+              ชื่อผู้แจ้งลบ <span className="text-red-500">*</span>
+            </label>
+            <div className="mb-3">
+              <NameSearchSelect value={deleteBy} onChange={setDeleteBy}
+                options={teacherNames} placeholder="พิมพ์เพื่อค้นหาชื่อ..." accentColor="#b91c1c" />
+            </div>
+            <label className="block text-sm font-medium text-slate-600 mb-1">
+              เหตุผลการลบ <span className="text-red-500">*</span>
+            </label>
+            <textarea value={deleteReason} onChange={(e) => setDeleteReason(e.target.value)}
+              rows={3} placeholder="เช่น บันทึกวันที่ผิด, บันทึกซ้ำ..."
+              className="w-full outline-none text-sm px-3 py-2 border border-slate-200 rounded-lg resize-none mb-3" />
+            {deleteError && <p className="text-sm text-red-600 mb-3">{deleteError}</p>}
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setDeleteTarget(null)} disabled={deleteSubmitting}
+                className="flex-1 py-2.5 rounded-xl border-2 border-slate-200 text-slate-600 text-sm font-medium disabled:opacity-40">
+                ยกเลิก
+              </button>
+              <button type="button" onClick={submitDeleteRequest}
+                disabled={deleteSubmitting || !deleteBy.trim() || !deleteReason.trim()}
+                className="flex-1 py-2.5 rounded-xl text-white text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-2"
+                style={{ background: "#dc2626" }}>
+                {deleteSubmitting ? <><Loader2 size={16} className="animate-spin" /> กำลังส่ง...</> : "ส่งคำขอลบ"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {visitType === "self" && (

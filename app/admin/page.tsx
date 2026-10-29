@@ -5,7 +5,7 @@ import { libraryApi, activityApi, roomApi, learningApi, ApiResponse, BorrowLog, 
 import ZoomableImage from "@/components/ZoomableImage";
 import LibraryStatsForm from "@/components/library/LibraryStatsForm";
 import CoverageDonut from "@/components/CoverageDonut";
-import { escapeHtml } from "@/lib/htmlUtils";
+import { escapeHtml, openPrintWindow } from "@/lib/htmlUtils";
 
 const ADMIN_PASSWORD = "admin1234";
 const LOGO_URL = "https://i.postimg.cc/Vvvyp9Df/logo-resized.png";
@@ -211,6 +211,33 @@ async function handleApprove(log: BorrowLog) {
     }
   }
 
+  async function handleConfirmDeleteActivity(act: Activity) {
+    if (!confirm(`ยืนยันลบบันทึกกิจกรรมของ ${act.ผู้บันทึก} ตามคำขอของ ${act.ผู้ขอลบ || "-"} ใช่หรือไม่?`)) return;
+    setProcessing(act.ID);
+    const res = await activityApi.deleteActivity(act.ID);
+    setProcessing(null);
+    if (res.success) {
+      setActSuccess("ลบบันทึกกิจกรรมตามคำขอแล้ว");
+      setTimeout(() => setActSuccess(""), 3000);
+      loadActivities();
+    } else {
+      alert(`ลบไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
+  }
+
+  async function handleCancelDeleteActivity(act: Activity) {
+    setProcessing(act.ID);
+    const res = await activityApi.cancelDeleteActivity(act.ID);
+    setProcessing(null);
+    if (res.success) {
+      setActSuccess("ปฏิเสธคำขอลบแล้ว");
+      setTimeout(() => setActSuccess(""), 3000);
+      loadActivities();
+    } else {
+      alert(`ปฏิเสธคำขอไม่สำเร็จ: ${res.error || "กรุณาลองใหม่อีกครั้ง"}`);
+    }
+  }
+
   async function handleRegistryApprove(entry: RoomRegistryEntry) {
     setProcessing(entry.ID);
     const res = await roomApi.approveRoomRegistryEntry(entry.ID);
@@ -396,10 +423,7 @@ async function handleApprove(log: BorrowLog) {
       </body>
       </html>
     `;
-    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) { setTimeout(() => { w.print(); }, 800); }
+    openPrintWindow(content);
   }
 
   function handleDownloadPDF(act: Activity) {
@@ -527,11 +551,10 @@ async function handleApprove(log: BorrowLog) {
       </body>
       </html>
     `;
-    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const w = window.open(url, "_blank");
-    if (w) { setTimeout(() => { w.print(); }, 800); }
+    openPrintWindow(content);
   }
+
+  const activityDeleteRequests = activities.filter((a) => a.คำขอลบ === "รอลบ");
 
   const pending = logs.filter((l) => l.สถานะ === "รอคืน");
   const pendingBorrow = logs.filter((l) => l.สถานะ === "รอยืม");
@@ -681,7 +704,7 @@ async function handleApprove(log: BorrowLog) {
       <div className="no-print flex rounded-2xl p-1 mb-6" style={{ background: "#e8f0fb" }}>
         {[
           { id: "borrow" as Tab, label: "การยืม-คืนหนังสือ", icon: <BookOpen size={18} /> },
-          { id: "activity" as Tab, label: "บันทึกกิจกรรม", icon: <ClipboardList size={18} /> },
+          { id: "activity" as Tab, label: activityDeleteRequests.length > 0 ? `บันทึกกิจกรรม (แจ้งลบ ${activityDeleteRequests.length})` : "บันทึกกิจกรรม", icon: <ClipboardList size={18} /> },
           { id: "registry" as Tab, label: "ทะเบียนแหล่งเรียนรู้", icon: <GraduationCap size={18} /> },
           { id: "stats" as Tab, label: "สถิติการใช้บริการ", icon: <BarChart3 size={18} /> },
         ].map((tab) => (
@@ -1037,6 +1060,42 @@ async function handleApprove(log: BorrowLog) {
                     </button>
                   </div>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activityDeleteRequests.length > 0 && (
+            <div className="bg-white rounded-2xl shadow p-5 border-2 border-red-200">
+              <h2 className="font-semibold text-lg mb-3 flex items-center gap-2" style={{ color: "#b91c1c" }}>
+                <AlertCircle size={18} /> คำขอลบบันทึกกิจกรรม ({activityDeleteRequests.length})
+              </h2>
+              <div className="space-y-3">
+                {activityDeleteRequests.map((act) => (
+                  <div key={act.ID} className="border border-red-100 bg-red-50/40 rounded-xl p-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs text-slate-400">
+                        {act.วันที่ ? new Date(act.วันที่).toLocaleDateString("th-TH") : ""} • ผู้บันทึก: {act.ผู้บันทึก || "-"}
+                      </p>
+                      <p className="font-medium text-slate-800 text-sm line-clamp-2">{act.ลักษณะกิจกรรม || "-"}</p>
+                      <p className="text-xs text-red-600 mt-1">แจ้งลบโดย: {act.ผู้ขอลบ || "-"}</p>
+                      <p className="text-xs text-red-600">เหตุผล: {act.เหตุผลการลบ || "-"}</p>
+                    </div>
+                    <div className="flex gap-1 shrink-0">
+                      <button onClick={() => setSelectedActivity(act)}
+                        className="p-2 rounded-lg text-slate-500 hover:bg-slate-100" title="ดูรายละเอียด">
+                        <Eye size={16} />
+                      </button>
+                      <button onClick={() => handleConfirmDeleteActivity(act)} disabled={processing === act.ID}
+                        className="p-2 rounded-lg text-green-500 hover:bg-green-50 disabled:opacity-40" title="ยืนยันลบ">
+                        <CheckCircle size={16} />
+                      </button>
+                      <button onClick={() => handleCancelDeleteActivity(act)} disabled={processing === act.ID}
+                        className="p-2 rounded-lg text-slate-400 hover:bg-slate-100 disabled:opacity-40" title="ปฏิเสธคำขอลบ">
+                        <XCircle size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}

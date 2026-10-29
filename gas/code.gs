@@ -77,6 +77,8 @@ if (e.postData) {
       case "getActivities":        result = getActivities(); break;
 case "updateActivityStatus": result = updateActivityStatus(data); break;
 case "deleteActivity":       result = deleteActivity(data); break;
+case "requestDeleteActivity": result = requestDeleteActivity(data); break;
+case "cancelDeleteActivity":  result = cancelDeleteActivity(data); break;
 case "searchBook": result = searchBook(data.query); break;
 case "updatePaymentStatus": result = updatePaymentStatus(data); break;
 case "getRoomRegistryByRoom":  result = getRoomRegistryByRoom(data.roomId); break;
@@ -795,6 +797,48 @@ function deleteActivity(data) {
   }
   return { success: false, error: "ไม่พบข้อมูล" };
 }
+// ผู้ใช้ทั่วไปแก้ไข/ลบบันทึกกิจกรรมที่บันทึกแล้วเองไม่ได้ ทำได้แค่ "แจ้งลบ" พร้อมเหตุผลและชื่อผู้แจ้ง
+// แล้วรอ Admin ยืนยันลบจริงผ่าน deleteActivity (หรือปฏิเสธผ่าน cancelDeleteActivity)
+// ใช้คอลัมน์ "คำขอลบ" แยกต่างหาก ไม่ทับคอลัมน์ "สถานะ" ที่ใช้กับการอนุมัติกิจกรรมอยู่แล้ว
+function setActivityDeleteRequest(id, values) {
+  if (!id) return { success: false, error: "ต้องระบุ ID" };
+  const sheet = getSheet(SHEETS.ACTIVITIES);
+  const allData = sheet.getDataRange().getValues();
+  const headers = allData[0].map(h => String(h).trim());
+  const idIdx = headers.indexOf("ID");
+  if (idIdx === -1) return { success: false, error: "ไม่พบคอลัมน์ ID ในชีต" };
+
+  for (let i = 1; i < allData.length; i++) {
+    if (allData[i][idIdx] === id) {
+      Object.keys(values).forEach(header => {
+        sheet.getRange(i + 1, getOrCreateColumn(sheet, header)).setValue(values[header]);
+      });
+      invalidateCachedChunked("activities");
+      return { success: true };
+    }
+  }
+  return { success: false, error: "ไม่พบข้อมูล" };
+}
+
+function requestDeleteActivity(data) {
+  const { id, requestedBy, reason } = data;
+  if (!String(requestedBy || "").trim()) return { success: false, error: "ต้องระบุชื่อผู้แจ้งลบ" };
+  if (!String(reason || "").trim()) return { success: false, error: "ต้องระบุเหตุผลการลบ" };
+  const res = setActivityDeleteRequest(id, {
+    "คำขอลบ": "รอลบ",
+    "ผู้ขอลบ": String(requestedBy).trim(),
+    "เหตุผลการลบ": String(reason).trim(),
+  });
+  if (res.success) {
+    sendLineNotify(`🗑️ แจ้งลบบันทึกกิจกรรม\nผู้แจ้ง: ${requestedBy}\nเหตุผล: ${reason}`);
+  }
+  return res;
+}
+
+function cancelDeleteActivity(data) {
+  return setActivityDeleteRequest(data.id, { "คำขอลบ": "", "ผู้ขอลบ": "", "เหตุผลการลบ": "" });
+}
+
 function getActivitiesByRoom(roomNumber) {
   if (!roomNumber) return { success: false, error: "ต้องระบุห้องเรียน" };
   const data = getActivitiesData();
