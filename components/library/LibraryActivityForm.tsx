@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { CheckCircle, Loader2, Camera, X, Pen, Printer, Plus, Trash2 } from "lucide-react";
+import { CheckCircle, Loader2, Camera, X, Pen, Printer, Plus, Trash2, FileDown } from "lucide-react";
 import { activityApi, libraryApi, Activity, Teacher, Student } from "@/lib/gas";
 import { compressImage } from "@/lib/imageUtils";
 import SignaturePad from "@/components/SignaturePad";
@@ -48,12 +48,30 @@ function formatTime(value?: string) {
   return isoMatch ? `${isoMatch[1]}:${isoMatch[2]}` : value;
 }
 
+// วันนี้ในรูป "YYYY-MM-DD" ตามเวลาเครื่อง ไม่ใช้ toISOString() เพราะเป็นเวลา UTC
+// ถ้าเปิดฟอร์มก่อน 07:00 น. (เวลาไทย) จะได้วันที่ของเมื่อวานแทน
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+// Google Sheets แปลง "2026-10-29" ที่บันทึกไปเป็นวันที่เที่ยงคืนตามเขตเวลาไทย แล้วส่งกลับมาเป็น
+// ISO แบบ UTC ("2026-10-28T17:00:00.000Z") จึงต้องแปลงเป็นวันที่ท้องถิ่นก่อนแสดง
+// ห้ามตัดสตริงที่ "T" ตรงๆ ไม่งั้นวันที่จะเลื่อนไปหนึ่งวัน
+function formatThaiDate(value?: string) {
+  if (!value) return "-";
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+  const d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(value);
+  if (isNaN(d.getTime())) return String(value);
+  return d.toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" });
+}
+
 type VisitType = "group" | "self";
 
 export default function LibraryActivityForm() {
   const [visitType, setVisitType] = useState<VisitType>("group");
   const [time, setTime] = useState("");
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(todayStr());
   const [teacherList, setTeacherList] = useState<string[]>([]);
   const [activityDetail, setActivityDetail] = useState("");
   const [knowledge, setKnowledge] = useState("");
@@ -66,7 +84,6 @@ export default function LibraryActivityForm() {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState("");
-  const [pendingPrint, setPendingPrint] = useState(false);
   const [history, setHistory] = useState<Activity[]>([]);
   const [historyError, setHistoryError] = useState("");
   const [teacherRoster, setTeacherRoster] = useState<Teacher[]>([]);
@@ -100,13 +117,6 @@ export default function LibraryActivityForm() {
       if (res.success && res.data) setStudentRoster(res.data);
     });
   }, []);
-
-  useEffect(() => {
-    if (pendingPrint) {
-      window.print();
-      setPendingPrint(false);
-    }
-  }, [pendingPrint]);
 
   async function handlePhoto(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -172,37 +182,121 @@ export default function LibraryActivityForm() {
     setPosition("");
     setSignature(null);
     setStudents([blankStudent()]);
-    setDate(new Date().toISOString().split("T")[0]);
+    setDate(todayStr());
   }
 
-  function loadRecordForView(act: Activity) {
-    setVisitType(act.ประเภทการเข้าใช้ === "บันทึกการเข้าใช้ของครู" ? "self" : "group");
-    setTime(act.เวลา ? formatTime(act.เวลา) : "");
-    setDate(act.วันที่ ? String(act.วันที่).split("T")[0] : date);
-    setTeacherList(act.รายชื่อครู ? act.รายชื่อครู.split("\n").filter(Boolean) : []);
-    setActivityDetail(act.ลักษณะกิจกรรม || "");
-    setKnowledge(act.สาระที่ได้รับ || "");
-    setPhotos(act.ImageURL ? act.ImageURL.split(",").filter(Boolean) : []);
-    setSignature(act.Signature || null);
-    setRecorder(act.ผู้บันทึก || "");
-    setPosition(act.ตำแหน่ง || "");
-    setStudents([blankStudent()]);
+  // สร้าง PDF ของรายการที่บันทึกแล้วในหน้าต่างแยก (อ่านอย่างเดียว) ไม่โหลดข้อมูลกลับเข้าฟอร์ม
+  // เพราะรายการที่บันทึกแล้วแก้ไขไม่ได้ ถ้าข้อมูลผิดต้องบันทึกรายการใหม่เท่านั้น
+  function handleDownloadRecordPDF(act: Activity) {
+    const multiline = (v?: string) => escapeHtml(v || "-").replace(/\n/g, "<br>");
+    let assessed: StudentAssessment[] = [];
     if (act.การประเมิน) {
       try {
         const parsed = JSON.parse(act.การประเมิน);
-        if (Array.isArray(parsed) && parsed.length > 0) setStudents(parsed);
+        if (Array.isArray(parsed)) assessed = parsed;
       } catch {
-        // ignore parse errors, keep current students
+        // ข้อมูลการประเมินเสีย ก็แค่ไม่แสดงส่วนนี้
       }
     }
-    setPendingPrint(true);
+    const photosHtml = (act.ImageURL || "").split(",").filter(Boolean)
+      .map((url) => `<img class="activity-img" src="${escapeHtml(url)}" alt="กิจกรรม" />`).join("");
+    const assessmentHtml = assessed.map((s) => {
+      const scores = s.scores || [];
+      const total = scores.reduce((a, b) => a + b, 0);
+      return `
+        <div style="page-break-inside:avoid">
+          <p style="margin:12px 0 4px;font-size:13px;"><b>${escapeHtml(s.name) || "-"}</b>${s.grade ? ` (${escapeHtml(s.grade)})` : ""}</p>
+          <table style="font-size:12px;">
+            <tr>
+              <td class="label" style="width:36%">รายการพฤติกรรมที่สังเกต</td>
+              <td class="label" style="width:12%;text-align:center">มีพฤติกรรม (๑)</td>
+              <td class="label" style="width:14%;text-align:center">ไม่มีพฤติกรรม (๐)</td>
+              <td class="label" style="width:38%">บันทึกเพิ่มเติม/พัฒนาการที่เห็น</td>
+            </tr>
+            ${ASSESSMENT_ITEMS.map((item, i) => `
+              <tr>
+                <td>${i + 1}. ${item}</td>
+                <td style="text-align:center">${scores[i] === 1 ? "✓" : ""}</td>
+                <td style="text-align:center">${scores[i] === 0 ? "✓" : ""}</td>
+                <td>${escapeHtml(s.notes && s.notes[i])}</td>
+              </tr>
+            `).join("")}
+            <tr><td class="label" colspan="3" style="text-align:center">รวมคะแนน</td><td class="label">${total} / ${ASSESSMENT_ITEMS.length}</td></tr>
+          </table>
+          <p style="font-size:12px;margin:4px 0 0;">ผลการประเมิน: ${resultOf(total)}</p>
+        </div>
+      `;
+    }).join("");
+
+    const content = `
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <title>บันทึกกิจกรรมห้องสมุดมีชีวิต ${escapeHtml(formatThaiDate(act.วันที่))}</title>
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+          @page { size: A4; margin: 15mm 20mm; }
+          body { font-family: 'Sarabun', sans-serif; padding: 30px; color: #1a202c; }
+          .header { text-align: center; margin-bottom: 12px; }
+          .header img { width: 64px; height: 64px; object-fit: contain; }
+          .header p { font-size: 15px; font-weight: 700; margin: 4px 0 0; }
+          .header .sub { font-size: 13px; font-weight: 400; color: #64748b; }
+          .divider { border-top: 3px solid #1e3a5f; border-bottom: 1px solid #1e3a5f; margin: 12px 0 16px; }
+          table { width: 100%; border-collapse: collapse; font-size: 13px; }
+          td { border: 1px solid #000; padding: 6px 8px; vertical-align: top; }
+          .label { background: #f0f4f8; font-weight: 600; width: 22%; }
+          .activity-imgs { display: flex; flex-wrap: wrap; gap: 8px; }
+          img.activity-img { width: 140px; height: 140px; object-fit: cover; border-radius: 6px; }
+          img.sig-img { height: 55px; object-fit: contain; }
+          .footer { text-align: center; font-size: 11px; color: #888; margin-top: 16px; border-top: 1px solid #e2e8f0; padding-top: 8px; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <img src="${LOGO_URL}" alt="logo" />
+          <p>บันทึกกิจกรรมห้องสมุดมีชีวิต</p>
+          <p>ศูนย์การศึกษาพิเศษ เขตการศึกษา ๓ จังหวัดสงขลา</p>
+          <p class="sub">ประเภท: บันทึกการเข้าใช้ของนักเรียน</p>
+        </div>
+        <div class="divider"></div>
+        <table>
+          <tr><td class="label">วันที่</td><td colspan="3">${escapeHtml(formatThaiDate(act.วันที่))}</td></tr>
+          <tr><td class="label">ครู/ผู้ดูแล</td><td colspan="3">${escapeHtml((act.รายชื่อครู || "").split("\n").filter(Boolean).join(", ") || "-")}</td></tr>
+          <tr><td class="label">ลักษณะกิจกรรม</td><td colspan="3">${multiline(act.ลักษณะกิจกรรม)}</td></tr>
+          <tr><td class="label">สาระที่ได้รับ</td><td colspan="3">${multiline(act.สาระที่ได้รับ)}</td></tr>
+          ${photosHtml ? `<tr><td class="label">ภาพกิจกรรม</td><td colspan="3"><div class="activity-imgs">${photosHtml}</div></td></tr>` : ""}
+        </table>
+        ${assessmentHtml ? `
+          <p style="font-weight:700;font-size:13px;margin:16px 0 0;">๓. แบบประเมินพฤติกรรมการเรียนรู้</p>
+          <p style="font-size:12px;color:#64748b;margin:0;">วัตถุประสงค์: สังเกตความสนใจและการใช้อุปกรณ์ตามศักยภาพรายบุคคล</p>
+          ${assessmentHtml}
+          <p style="font-size:11px;color:#94a3b8;margin:8px 0 0;">เกณฑ์การสรุปผล: ${PASS_SCORE}-${ASSESSMENT_ITEMS.length} คะแนน มีความสนใจและพัฒนาทักษะได้ดี (ผ่านเกณฑ์) | 0-${PASS_SCORE - 1} คะแนน ควรได้รับการกระตุ้นหรือปรับรูปแบบสื่อให้เหมาะสม</p>
+        ` : ""}
+        <table style="margin-top:16px;page-break-inside:avoid">
+          <tr>
+            <td class="label">ผู้บันทึก</td>
+            <td style="width:28%">${escapeHtml(act.ผู้บันทึก) || "-"}${act.ตำแหน่ง ? ` (${escapeHtml(act.ตำแหน่ง)})` : ""}</td>
+            <td class="label" style="width:18%;text-align:center">ลายมือชื่อผู้บันทึก</td>
+            <td style="width:32%;text-align:center;vertical-align:middle">
+              ${act.Signature ? `<img class="sig-img" src="${escapeHtml(act.Signature)}" alt="ลายเซ็น" />` : "<br><br>"}
+            </td>
+          </tr>
+        </table>
+        <div class="footer">พิมพ์วันที่ ${formatThaiDate(todayStr())}</div>
+      </body>
+      </html>
+    `;
+    const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, "_blank");
+    if (w) { setTimeout(() => { w.print(); }, 800); }
   }
 
   function handlePrintSelfTable() {
     const rows = selfHistory.map((a, i) => `
       <tr>
         <td style="text-align:center">${i + 1}</td>
-        <td>${a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}</td>
+        <td>${formatThaiDate(a.วันที่)}</td>
         <td style="text-align:center">${escapeHtml(formatTime(a.เวลา))}</td>
         <td>${escapeHtml(a.ผู้บันทึก) || "-"}</td>
         <td>${escapeHtml(a.ตำแหน่ง) || "-"}</td>
@@ -357,7 +451,7 @@ export default function LibraryActivityForm() {
                 <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
                   className="no-print w-full outline-none text-sm px-1 py-0.5 border border-slate-200 rounded mb-1" />
                 <span className="text-sm">
-                  {new Date(date).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" })}
+                  {formatThaiDate(date)}
                 </span>
               </td>
             </tr>
@@ -599,13 +693,13 @@ export default function LibraryActivityForm() {
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-slate-800 truncate">{a.ลักษณะกิจกรรม || "-"}</p>
                   <p className="text-xs text-slate-400">
-                    {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : ""}
+                    {formatThaiDate(a.วันที่)}
                     {a.ผู้บันทึก ? ` • ผู้บันทึก: ${a.ผู้บันทึก}` : ""}
                   </p>
                 </div>
-                <button type="button" onClick={() => loadRecordForView(a)}
+                <button type="button" onClick={() => handleDownloadRecordPDF(a)}
                   className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-slate-200 text-slate-500 hover:border-blue-400 text-xs">
-                  <Printer size={14} /> ดาวน์โหลด PDF
+                  <FileDown size={14} /> PDF
                 </button>
               </div>
             ))}
@@ -647,7 +741,7 @@ export default function LibraryActivityForm() {
                   <tr key={a.ID}>
                     <td className="p-2 text-center" style={{ border: "1px solid #000" }}>{i + 1}</td>
                     <td className="p-2" style={{ border: "1px solid #000" }}>
-                      {a.วันที่ ? new Date(a.วันที่).toLocaleDateString("th-TH", { year: "numeric", month: "long", day: "numeric" }) : "-"}
+                      {formatThaiDate(a.วันที่)}
                     </td>
                     <td className="p-2 text-center" style={{ border: "1px solid #000" }}>{formatTime(a.เวลา)}</td>
                     <td className="p-2" style={{ border: "1px solid #000" }}>{a.ผู้บันทึก || "-"}</td>
