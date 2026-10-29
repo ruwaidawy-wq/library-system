@@ -1204,5 +1204,77 @@ function computePublicLibraryStats() {
   const borrowLogs = sheetToJSON(getSheet(SHEETS.BORROW_LOG));
   const libraryUsageTotal = borrowLogs.length;
 
-  return { roomUsage, teacherMonthlyFrequency, learningResourceTotal, roomsWithRegistryCount, libraryUsageTotal };
+  const libraryRoomVisits = computeLibraryRoomVisits(activities);
+
+  // ภาพสำหรับประมวลภาพแบบสุ่มในหน้าแรก (ส่งแค่ URL ไม่มีชื่อบุคคล) ส่งไปเป็นกองใหญ่แล้วให้
+  // หน้าเว็บสุ่มเลือกเอง เพราะผลนี้ถูกแคชไว้ 5 นาที ถ้าสุ่มที่นี่ทุกคนจะเห็นชุดเดิมตลอดช่วงแคช
+  const libraryPhotos = [];
+  const learningPhotos = [];
+  activities.forEach(row => {
+    const target = String(row["ห้องเรียน"]) === "งานห้องสมุด" ? libraryPhotos : learningPhotos;
+    target.push(...imageUrlsOf(row["ImageURL"]));
+  });
+  checkins.forEach(row => learningPhotos.push(...imageUrlsOf(row["รูปภาพ"])));
+  approvedRegistry.forEach(row => learningPhotos.push(...imageUrlsOf(row["รูปภาพURL"])));
+
+  return {
+    roomUsage, teacherMonthlyFrequency, learningResourceTotal, roomsWithRegistryCount, libraryUsageTotal,
+    libraryRoomVisits,
+    libraryPhotos: sampleOf(libraryPhotos, 40),
+    learningPhotos: sampleOf(learningPhotos, 40),
+  };
+}
+
+// นับจำนวนครั้งที่แต่ละห้องเรียนมาใช้ห้องสมุดต่อเดือน จากบันทึกกิจกรรมห้องสมุดมีชีวิตของนักเรียน
+// ผลลัพธ์ { "YYYY-MM": { "1": 3, "2": 1, ... } } โดยเลขห้องคือ "ระดับชั้น" ของนักเรียน (ตรงกับห้องเรียน ๑-๒๔)
+// กิจกรรมหนึ่งครั้งนับ 1 ครั้งให้ทุกห้องที่มีนักเรียนร่วม ไม่นับซ้ำตามจำนวนนักเรียน
+// ห้องของนักเรียนอ่านจากผลการประเมิน (เก็บระดับชั้นไว้แล้ว) ก่อน ถ้าไม่มีค่อยเทียบชื่อกับชีต Students
+function computeLibraryRoomVisits(activities) {
+  const roomOfStudent = {};
+  getStudents().data.forEach(s => {
+    const name = String(s["ชื่อ-นามสกุล"] || "").trim();
+    const grade = String(s["ระดับชั้น"] || "").trim();
+    if (name && grade) roomOfStudent[name] = grade;
+  });
+
+  const visits = {};
+  activities.forEach(row => {
+    if (String(row["ห้องเรียน"]) !== "งานห้องสมุด") return;
+    if (String(row["ประเภทการเข้าใช้"]) === "บันทึกการเข้าใช้ของครู") return;
+    const d = new Date(row["วันที่"]);
+    if (!row["วันที่"] || isNaN(d.getTime())) return;
+    const key = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+
+    const rooms = {};
+    let assessed = [];
+    try { assessed = JSON.parse(row["การประเมิน"] || "[]"); } catch (e) { assessed = []; }
+    if (Array.isArray(assessed)) {
+      assessed.forEach(s => {
+        const name = String((s && s.name) || "").trim();
+        const grade = String((s && s.grade) || roomOfStudent[name] || "").trim();
+        if (grade) rooms[grade] = true;
+      });
+    }
+    String(row["รายชื่อนักเรียน"] || "").split("\n").map(s => s.trim()).filter(Boolean).forEach(name => {
+      if (roomOfStudent[name]) rooms[roomOfStudent[name]] = true;
+    });
+
+    if (!visits[key]) visits[key] = {};
+    Object.keys(rooms).forEach(room => { visits[key][room] = (visits[key][room] || 0) + 1; });
+  });
+  return visits;
+}
+
+// ดึงเฉพาะ URL รูปที่อัปโหลดขึ้น Drive แล้ว (ข้ามข้อมูล base64 เก่าที่ยาวมาก)
+function imageUrlsOf(value) {
+  return String(value || "").split(",").map(s => s.trim()).filter(u => /^https?:\/\//.test(u));
+}
+
+function sampleOf(list, max) {
+  const copy = list.slice();
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = copy[i]; copy[i] = copy[j]; copy[j] = t;
+  }
+  return copy.slice(0, max);
 }

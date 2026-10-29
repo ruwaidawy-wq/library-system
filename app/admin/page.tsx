@@ -1,9 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Lock, LogOut, CheckCircle, XCircle, DollarSign, Loader2, RefreshCw, AlertCircle, BookOpen, ClipboardList, Trash2, Eye, EyeOff, GraduationCap, BarChart3, Printer } from "lucide-react";
-import { libraryApi, activityApi, roomApi, learningApi, ApiResponse, BorrowLog, Activity, RoomRegistryEntry, CheckIn } from "@/lib/gas";
+import { libraryApi, activityApi, roomApi, learningApi, statsApi, ApiResponse, BorrowLog, Activity, RoomRegistryEntry, CheckIn, PublicLibraryStats } from "@/lib/gas";
 import ZoomableImage from "@/components/ZoomableImage";
-import LibraryStatsForm from "@/components/library/LibraryStatsForm";
+import LibraryRoomVisits from "@/components/library/LibraryRoomVisits";
 import CoverageDonut from "@/components/CoverageDonut";
 import { escapeHtml, openPrintWindow } from "@/lib/htmlUtils";
 
@@ -89,6 +89,9 @@ export default function AdminPage() {
   const [loadingDeletions, setLoadingDeletions] = useState(false);
   const [deletionSuccess, setDeletionSuccess] = useState("");
 
+  const [publicStats, setPublicStats] = useState<PublicLibraryStats | null>(null);
+  const [loadingPublicStats, setLoadingPublicStats] = useState(false);
+
   function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (password === ADMIN_PASSWORD) {
@@ -125,6 +128,13 @@ export default function AdminPage() {
     setLoadingRegistry(false);
   }
 
+  async function loadPublicStats() {
+    setLoadingPublicStats(true);
+    const res = await withRetry(() => statsApi.getPublicLibraryStats());
+    if (res.success && res.data) setPublicStats(res.data);
+    setLoadingPublicStats(false);
+  }
+
   async function loadPendingDeletions() {
     setLoadingDeletions(true);
     const res = await withRetry(() => learningApi.getPendingCheckInDeletions());
@@ -133,7 +143,7 @@ export default function AdminPage() {
   }
 
   useEffect(() => {
-    if (isLoggedIn) { loadLogs(); loadActivities(); loadRegistry(); loadPendingDeletions(); }
+    if (isLoggedIn) { loadLogs(); loadActivities(); loadRegistry(); loadPendingDeletions(); loadPublicStats(); }
   }, [isLoggedIn]);
 
 async function handleApprove(log: BorrowLog) {
@@ -632,7 +642,7 @@ async function handleApprove(log: BorrowLog) {
           <p className="text-slate-400 text-sm">จัดการระบบห้องสมุดและแหล่งเรียนรู้</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => { loadLogs(); loadActivities(); loadRegistry(); loadPendingDeletions(); }}
+          <button onClick={() => { loadLogs(); loadActivities(); loadRegistry(); loadPendingDeletions(); loadPublicStats(); }}
             className="p-2 rounded-xl bg-white shadow text-slate-500 hover:bg-slate-50">
             <RefreshCw size={18} className={(loadingLogs || loadingAct || loadingRegistry || loadingDeletions) ? "animate-spin" : ""} />
           </button>
@@ -1319,7 +1329,7 @@ async function handleApprove(log: BorrowLog) {
         </div>
       )}
 
-      {activeTab === "stats" && <LibraryStatsForm totalRooms={totalRoomsCount} />}
+      {activeTab === "stats" && <LibraryRoomVisits visits={publicStats?.libraryRoomVisits} loading={loadingPublicStats} />}
     </div>
   );
 }

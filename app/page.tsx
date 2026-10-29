@@ -1,10 +1,24 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { BookOpen, GraduationCap, ChevronRight, Sparkles, BarChart3 } from "lucide-react";
+import { statsApi, PublicLibraryStats } from "@/lib/gas";
+import PhotoShowcase from "@/components/PhotoShowcase";
+import LibraryRoomVisits from "@/components/library/LibraryRoomVisits";
 
 export default function HomePage() {
+  const [stats, setStats] = useState<PublicLibraryStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    statsApi.getPublicLibraryStats().then((res) => {
+      if (res.success && res.data) setStats(res.data);
+      setLoadingStats(false);
+    });
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center p-6 py-10">
       {/* Header */}
 <div className="text-center mb-12 animate-fade-in">
   <img
@@ -18,8 +32,9 @@ export default function HomePage() {
   <p className="text-slate-400 text-sm mt-1">เลือกโซนที่ต้องการเข้าใช้งาน</p>
 </div>
 
-      {/* Zone Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-2xl">
+      {/* ซ้าย: ห้องสมุดทั้งหมด / ขวา: แหล่งเรียนรู้ทั้งหมด */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-6xl">
+        <div className="flex flex-col gap-6">
         {/* Library Zone */}
         <Link href="/library" className="group">
           <div
@@ -56,6 +71,11 @@ export default function HomePage() {
           </div>
         </Link>
 
+        <PhotoShowcase title="ประมวลภาพการเข้าใช้ห้องสมุด" photos={stats?.libraryPhotos || []}
+          accent="#1e3a5f" loading={loadingStats} />
+        </div>
+
+        <div className="flex flex-col gap-6">
         {/* Learning Center Zone */}
         <Link href="/learning-center" className="group">
           <div
@@ -91,9 +111,13 @@ export default function HomePage() {
             </div>
           </div>
         </Link>
+
+        <PhotoShowcase title="ประมวลภาพการเข้าใช้แหล่งเรียนรู้" photos={stats?.learningPhotos || []}
+          accent="#065f46" loading={loadingStats} />
+        </div>
       </div>
 
-      <Link href="/library?view=activity" className="group w-full max-w-2xl mt-6">
+      <Link href="/library?view=activity" className="group w-full max-w-6xl mt-8">
         <div
           className="rounded-2xl px-8 py-5 text-white cursor-pointer transition-all duration-300 flex items-center justify-between gap-4 group-hover:shadow-xl group-hover:-translate-y-1 animate-fade-in animate-delay-300"
           style={{ background: "linear-gradient(135deg, #b45309 0%, #f59e0b 100%)" }}
@@ -111,7 +135,11 @@ export default function HomePage() {
         </div>
       </Link>
 
-      <Link href="/library-stats-public" className="group w-full max-w-2xl mt-4">
+      <div className="w-full max-w-6xl mt-6">
+        <LibraryRoomVisits visits={stats?.libraryRoomVisits} loading={loadingStats} />
+      </div>
+
+      <Link href="/library-stats-public" className="group w-full max-w-6xl mt-6">
         <div
           className="rounded-2xl px-8 py-5 text-white cursor-pointer transition-all duration-300 flex items-center justify-between gap-4 group-hover:shadow-xl group-hover:-translate-y-1 animate-fade-in animate-delay-300"
           style={{ background: "linear-gradient(135deg, #334155 0%, #64748b 100%)" }}

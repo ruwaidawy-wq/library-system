@@ -293,6 +293,10 @@ export type PublicLibraryStats = {
   learningResourceTotal: number;
   roomsWithRegistryCount: number;
   libraryUsageTotal: number;
+  // ช่องด้านล่างอาจยังไม่มีในช่วงที่แคชเก่าของ GAS ยังไม่หมดอายุ (สูงสุด 5 นาทีหลัง deploy)
+  libraryRoomVisits?: Record<string, Record<string, number>>;
+  libraryPhotos?: string[];
+  learningPhotos?: string[];
 };
 
 export const statsApi = {
